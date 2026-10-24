@@ -1,0 +1,3728 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>數學與多學科打地鼠大挑戰 - 1024發佈版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 PDF.js 供瀏覽器端直接解析 PDF 題庫與自動切圖 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Fredoka:wght@600;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 遊戲背景隨時間日夜漸變 */
+        .sky-day {
+            background: linear-gradient(180deg, #38bdf8 0%, #bae6fd 60%, #e0f2fe 100%);
+            transition: background 2s ease;
+        }
+        .sky-sunset {
+            background: linear-gradient(180deg, #ea580c 0%, #fb923c 55%, #fde047 100%);
+            transition: background 2s ease;
+        }
+        .sky-night {
+            background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
+            transition: background 2s ease;
+        }
+
+        /* 狂熱模式 (FEVER) 特效 */
+        @keyframes feverGlow {
+            0%, 100% { box-shadow: inset 0 0 35px rgba(239, 68, 68, 0.55), 0 0 25px rgba(245, 158, 11, 0.7); }
+            50% { box-shadow: inset 0 0 65px rgba(245, 158, 11, 0.85), 0 0 45px rgba(239, 68, 68, 0.9); }
+        }
+        .fever-active {
+            animation: feverGlow 0.9s infinite alternate;
+        }
+
+        /* 木槌與震動特效 */
+        @keyframes boardShake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-5px, 4px); }
+            40% { transform: translate(5px, -4px); }
+            60% { transform: translate(-4px, 3px); }
+            80% { transform: translate(4px, -2px); }
+        }
+        .shake-active {
+            animation: boardShake 0.28s ease-in-out;
+        }
+
+        @keyframes hammerHit {
+            0% { transform: translate(25px, -55px) rotate(40deg) scale(0.9); opacity: 0; }
+            25% { transform: translate(15px, -45px) rotate(45deg) scale(1.05); opacity: 1; }
+            55% { transform: translate(-8px, 10px) rotate(-22deg) scale(1.15, 0.88); opacity: 1; }
+            75% { transform: translate(-4px, -4px) rotate(-10deg) scale(1); opacity: 1; }
+            100% { transform: translate(20px, -50px) rotate(30deg) scale(0.9); opacity: 0; }
+        }
+        .hammer-anim {
+            animation: hammerHit 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            transform-origin: 80% 85%;
+        }
+
+        /* 地鼠浮出與退回動畫 */
+        .mole-wrapper {
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: translateY(105%);
+        }
+        .mole-wrapper.up {
+            transform: translateY(0%);
+        }
+        .mole-wrapper.bonked {
+            transform: translateY(18%) scale(1.15, 0.72);
+            transition: transform 0.12s ease-out;
+        }
+
+        /* 排行榜前三名榮耀光環 */
+        .rank-1-card {
+            background: linear-gradient(90deg, #fef08a 0%, #fde047 50%, #facc15 100%);
+            border: 3px solid #ca8a04;
+            box-shadow: 0 4px 15px rgba(234, 179, 8, 0.4);
+        }
+        .rank-2-card {
+            background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
+            border: 3px solid #64748b;
+        }
+        .rank-3-card {
+            background: linear-gradient(90deg, #ffedd5 0%, #fed7aa 50%, #fdba74 100%);
+            border: 3px solid #c2410c;
+        }
+
+        /* 隱藏捲軸但保留滾動 */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #fef3c7;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-amber-50">
+
+    <!-- 頂部導覽列 -->
+    <header class="w-full bg-[#4a2610] text-amber-50 px-3 md:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b-4 border-[#2e1608] z-30 shadow-lg">
+        <div class="flex items-center gap-2.5">
+            <span class="text-2xl md:text-3xl">🐹</span>
+            <div>
+                <h1 class="text-base md:text-xl font-black tracking-wide text-amber-300 leading-tight">數學與多學科打地鼠大挑戰</h1>
+                <p id="header-subtitle" class="text-[11px] md:text-xs text-amber-100/80 font-bold">國中一年級 (七年級) ｜ 上學期 ｜ 第 1 次段考</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1.5 md:gap-2">
+            <button onclick="openAdminModal()" class="px-2.5 py-1.5 rounded-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs md:text-sm border-2 border-emerald-400 shadow transition active:scale-95 flex items-center gap-1">
+                🔐 題庫管理
+            </button>
+            <button onclick="openLeaderboardModal()" class="px-2.5 py-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-xs md:text-sm border-2 border-amber-200 shadow transition active:scale-95 flex items-center gap-1">
+                🏆 排行榜
+            </button>
+            <button id="btn-sound" onclick="toggleSound()" class="px-2.5 py-1.5 rounded-full bg-amber-800 hover:bg-amber-700 text-amber-100 font-bold text-xs md:text-sm border-2 border-amber-600 shadow transition active:scale-95">
+                🔊 音效: 開
+            </button>
+            <button id="btn-fullscreen" onclick="toggleFullscreen()" class="px-2.5 py-1.5 rounded-full bg-indigo-700 hover:bg-indigo-600 text-white font-bold text-xs md:text-sm border-2 border-indigo-400 shadow transition active:scale-95">
+                ⛶ 全螢幕
+            </button>
+            <button onclick="backToMenu()" class="px-2.5 py-1.5 rounded-full bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs md:text-sm border-2 border-rose-400 shadow transition active:scale-95">
+                ⚙️ 重選範圍
+            </button>
+        </div>
+    </header>
+
+    <!-- 浮動通知 Toast -->
+    <div id="toast-msg" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden bg-amber-950/95 text-amber-100 border-2 border-amber-400 px-5 py-2.5 rounded-full font-extrabold text-sm shadow-2xl transition-all"></div>
+
+    <!-- 主遊戲區與背景 -->
+    <main id="game-stage" class="flex-grow relative flex flex-col items-center justify-between sky-day overflow-hidden py-3 px-2 md:px-6">
+        
+        <!-- 太陽 / 月亮裝飾 -->
+        <div id="celestial-body" class="absolute top-6 right-8 w-16 h-16 md:w-20 md:h-20 rounded-full bg-yellow-300 border-4 border-amber-400 shadow-[0_0_40px_rgba(250,204,21,0.9)] transition-all duration-1000 pointer-events-none z-0"></div>
+
+        <!-- 遠景山丘與草地層 -->
+        <div class="absolute bottom-0 left-0 right-0 h-[58%] bg-gradient-to-b from-[#38a169] to-[#276749] rounded-t-[50%_18%] pointer-events-none z-0 border-t-4 border-[#68d391]/50"></div>
+        <div class="absolute bottom-0 left-0 right-0 h-[44%] bg-gradient-to-b from-[#48bb78] via-[#2f855a] to-[#22543d] rounded-t-[40%_15%] pointer-events-none z-0 shadow-inner"></div>
+
+        <!-- 粒子特效畫布 -->
+        <canvas id="particle-canvas" class="fixed inset-0 pointer-events-none z-40"></canvas>
+
+        <!-- ================= 畫面 1：範圍與題庫選擇主選單 ================= -->
+        <section id="menu-screen" class="relative z-20 my-auto w-full max-w-3xl bg-[#fef9c3] border-[6px] border-[#92400e] rounded-3xl shadow-[0_12px_0_#5b2106,0_20px_35px_rgba(0,0,0,0.4)] p-4 md:p-7">
+            <div class="text-center mb-4">
+                <!-- 題庫來源切換器 (三大獨立模式) -->
+                <div class="inline-flex flex-wrap justify-center gap-1.5 bg-amber-200/80 p-1.5 rounded-2xl border-2 border-amber-600 mb-2">
+                    <button id="mode-btn-builtin" onclick="selectBankMode('builtin')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-amber-800 text-white shadow">
+                        🎯 108 課綱國小～國中數學題庫
+                    </button>
+                    <button id="mode-btn-custom" onclick="selectBankMode('custom')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60">
+                        📂 教師自訂 / 技藝競賽題庫 (<span id="menu-custom-count">0</span>題)
+                    </button>
+                    <button id="mode-btn-wrongbook" onclick="selectBankMode('wrongbook')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-indigo-900 hover:bg-indigo-200/60">
+                        📝 我的錯題複習本 (<span id="menu-wrongbook-count">0</span>題)
+                    </button>
+                </div>
+
+                <h2 class="text-2xl md:text-3xl font-black text-amber-950 tracking-wide">請選擇挑戰程度與評量範圍</h2>
+                <p class="text-xs md:text-sm text-amber-800 font-bold mt-1">
+                    敲中「正確答案」得分！連續答對 5 題啟動 <span class="text-red-600 font-black">🔥 狂熱模式(分數雙倍)</span>，留意隨機出現的 <span class="text-sky-700 font-black">⏳加時地鼠</span> 與 <span class="text-purple-700 font-black">💣炸彈地鼠</span>！
+                </p>
+
+                <!-- 學生端直接匯入錯題複習本 (.txt) -->
+                <div class="mt-2.5 flex flex-wrap justify-center gap-2">
+                    <label class="cursor-pointer inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs px-4 py-1.5 rounded-full border-2 border-indigo-300 shadow transition active:scale-95">
+                        📂 學生端：匯入錯題複習本 (.txt) 獨立特訓
+                        <input type="file" accept=".txt" class="hidden" onchange="importStudentWrongBookTxt(event)" />
+                    </label>
+                </div>
+            </div>
+
+            <!-- 步驟 1：選擇年級 -->
+            <div class="mb-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label class="text-sm md:text-base font-black text-amber-950 flex items-center gap-1.5">
+                        <span class="w-6 h-6 rounded-full bg-amber-800 text-white text-xs flex items-center justify-center">1</span>
+                        選擇年級程度（小一 ～ 國三）：
+                    </label>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <span id="cloud-best-badge" class="text-xs font-black bg-yellow-300 text-amber-950 px-3 py-1 rounded-full border border-amber-600 shadow-sm">
+                            🏆 雲端最高：讀取中...
+                        </span>
+                        <span id="personal-best-badge" class="text-xs font-bold bg-amber-200 text-amber-900 px-3 py-1 rounded-full border border-amber-500">
+                            🏅 本機最高：0 分
+                        </span>
+                    </div>
+                </div>
+                <div id="grade-buttons-grid" class="grid grid-cols-3 md:grid-cols-6 gap-2">
+                    <!-- JS 動態生成小一～國三按鈕 -->
+                </div>
+            </div>
+
+            <!-- 內建數學題庫選項：學期與段考範圍 -->
+            <div id="builtin-options-panel" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-sm md:text-base font-black text-amber-950 flex items-center gap-1.5 mb-2">
+                        <span class="w-6 h-6 rounded-full bg-amber-800 text-white text-xs flex items-center justify-center">2</span>
+                        選擇學期：
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="sem-btn-1" onclick="selectSemester(1)" class="py-2.5 px-3 rounded-xl font-black text-sm border-2 transition-all bg-amber-800 text-white border-amber-950 shadow">🍂 上學期</button>
+                        <button id="sem-btn-2" onclick="selectSemester(2)" class="py-2.5 px-3 rounded-xl font-black text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-100">🌱 下學期</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-sm md:text-base font-black text-amber-950 flex items-center gap-1.5 mb-2">
+                        <span class="w-6 h-6 rounded-full bg-amber-800 text-white text-xs flex items-center justify-center">3</span>
+                        選擇評量/段考範圍：
+                    </label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="exam-btn-1" onclick="selectExam(1)" class="py-2.5 px-2 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-emerald-700 text-white border-emerald-950 shadow">第 1 次段考</button>
+                        <button id="exam-btn-2" onclick="selectExam(2)" class="py-2.5 px-2 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-100">第 2 次段考</button>
+                        <button id="exam-btn-3" onclick="selectExam(3)" class="py-2.5 px-2 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-100">第 3 次段考</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自訂題庫選項：選擇科目名稱 -->
+            <div id="custom-options-panel" class="hidden mb-4 bg-emerald-50 border-2 border-emerald-600 rounded-2xl p-3.5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div>
+                        <label class="text-sm md:text-base font-black text-emerald-950 flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-emerald-700 text-white text-xs flex items-center justify-center">2</span>
+                            選擇挑戰科目 / 題庫名稱：
+                        </label>
+                        <p class="text-xs text-emerald-800 mt-0.5">可由右上角「🔐 題庫管理」上傳 PDF 題庫（如 250 題技藝競賽學科）、文字或圖片檔</p>
+                    </div>
+                    <select id="custom-subject-select" onchange="updateScopeDescription()" class="bg-white border-2 border-emerald-600 rounded-xl px-3 py-2 text-sm font-black text-emerald-950 focus:outline-none">
+                        <option value="ALL">📚 全部自訂題庫</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 學生錯題複習本專屬面板 (與教師自訂題庫完全分開) -->
+            <div id="wrongbook-options-panel" class="hidden mb-4 bg-indigo-50 border-2 border-indigo-600 rounded-2xl p-3.5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div>
+                        <label class="text-sm md:text-base font-black text-indigo-950 flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-indigo-700 text-white text-xs flex items-center justify-center">2</span>
+                            學生個人錯題複習本專區（與教師題庫完全獨立）：
+                        </label>
+                        <p id="wrongbook-panel-info" class="text-xs text-indigo-800 font-bold mt-0.5">尚未匯入錯題本，請點擊上方紫色按鈕上傳您下載的「錯題複習本.txt」檔案。</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow">
+                            ➕ 重新載入 .txt
+                            <input type="file" accept=".txt" class="hidden" onchange="importStudentWrongBookTxt(event)" />
+                        </label>
+                        <button onclick="clearStudentWrongBook()" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow">
+                            🗑️ 清空錯題本
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步驟 4：選擇時間計算模式與地鼠速度 -->
+            <div class="bg-amber-100/90 border-2 border-amber-500 rounded-2xl p-3.5 mb-5 flex flex-col gap-3">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-amber-300 pb-2.5">
+                    <div class="flex-1">
+                        <span class="text-xs font-extrabold text-amber-800 block">📚 本範圍考查單元重點：</span>
+                        <p id="scope-desc-text" class="text-sm md:text-base font-black text-emerald-900 mt-0.5">正負數與絕對值、整數的加減乘除四則運算、指數律與科學記號</p>
+                    </div>
+                    <div class="flex items-center gap-2 self-start md:self-center shrink-0">
+                        <label for="speed-select" class="text-xs font-black text-amber-900">地鼠速度：</label>
+                        <select id="speed-select" class="bg-white border-2 border-amber-700 rounded-xl px-2.5 py-1.5 text-xs md:text-sm font-black text-amber-950">
+                            <option value="slow">🐢 輕鬆慢速 (4.5秒)</option>
+                            <option value="normal" selected>🐹 標準速度 (3.5秒)</option>
+                            <option value="fast">⚡ 刺激快速 (2.5秒)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 挑戰時間與練習模式切換 -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span class="text-xs md:text-sm font-black text-amber-950 flex items-center gap-1">
+                        ⏱️ 挑戰時間與出題模式：
+                    </span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 max-w-lg">
+                        <button id="playmode-btn-timed" onclick="selectPlayMode('timed')" class="py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-amber-800 text-white border-amber-950 shadow flex items-center justify-center gap-1.5">
+                            ⏱️ 限時挑戰 (90秒・錯題重考)
+                        </button>
+                        <button id="playmode-btn-practice" onclick="selectPlayMode('practice')" class="py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-200/60 flex items-center justify-center gap-1.5">
+                            ♾️ 練習所有題庫 (不限時・全對通關)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 開始按鈕 -->
+            <div class="text-center">
+                <button onclick="startGame()" class="px-10 py-3.5 rounded-full bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-black text-lg md:text-xl border-4 border-emerald-950 shadow-[0_6px_0_#064e3b] active:translate-y-1 active:shadow-none transition-all">
+                    🔨 開始打地鼠解題！
+                </button>
+            </div>
+        </section>
+
+        <!-- ================= 畫面 2：打地鼠遊戲進行中畫面 ================= -->
+        <section id="play-screen" class="hidden relative z-20 w-full max-w-4xl flex-col items-center justify-between flex-grow my-auto">
+            
+            <!-- 題目黑板看台 -->
+            <div id="question-board" class="w-full bg-[#b45309] border-[6px] border-[#78350f] rounded-3xl p-3 md:p-4 shadow-[0_10px_0_#451a03,0_15px_30px_rgba(0,0,0,0.45)] mb-2">
+                <!-- 狀態資訊列 -->
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
+                    <div class="flex items-center gap-2">
+                        <div class="bg-[#451a03] text-amber-200 px-3.5 py-1 rounded-full border-2 border-amber-600 font-black text-sm md:text-base flex items-center gap-1.5 shadow-inner">
+                            🏆 得分 <span id="score-display" class="text-yellow-300 text-lg md:text-2xl font-black">0</span>
+                        </div>
+                        <div id="combo-badge" class="hidden bg-gradient-to-r from-red-600 to-amber-500 text-white px-3 py-1 rounded-full border-2 border-yellow-200 font-black text-xs md:text-sm animate-bounce shadow">
+                            🔥 <span id="combo-count">0</span> COMBO!
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button id="btn-skip-q" onclick="skipQuestion()" class="px-3 py-1 rounded-full bg-amber-800 hover:bg-amber-700 text-amber-100 text-xs font-bold border border-amber-500 shadow active:scale-95">
+                            🔄 換一題 (-3秒)
+                        </button>
+                        <button id="btn-finish-early" onclick="endGame(true)" class="hidden px-3 py-1 rounded-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-black border border-emerald-300 shadow active:scale-95">
+                            🏁 完成交卷結算
+                        </button>
+                        <div class="bg-[#451a03] text-amber-200 px-3.5 py-1 rounded-full border-2 border-amber-600 font-black text-sm md:text-base flex items-center gap-1.5 shadow-inner">
+                            ⏱️ 時間 <span id="timer-display" class="text-emerald-400 text-lg md:text-2xl font-black">90</span> <span id="timer-unit">秒</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 題目內文區 -->
+                <div class="bg-[#fef3c7] border-4 border-[#92400e] rounded-2xl p-3 md:p-5 text-center relative shadow-inner min-h-[115px] flex flex-col items-center justify-center">
+                    <div class="w-full flex items-center justify-between text-xs font-bold text-amber-800 mb-1">
+                        <span id="q-topic-tag" class="bg-amber-200 border border-amber-500 px-2.5 py-0.5 rounded-full">📌 單元主題</span>
+                        <span id="q-counter-tag" class="text-amber-900 font-black">第 1 題</span>
+                    </div>
+
+                    <div id="q-text" class="text-lg md:text-2xl font-black text-slate-900 tracking-wide leading-snug my-1 max-w-3xl">
+                        題目載入中...
+                    </div>
+
+                    <!-- 若題目附有圖片則顯示於此 -->
+                    <div id="q-img-wrapper" class="hidden my-2 max-h-44 overflow-hidden rounded-xl border-2 border-amber-700 bg-white p-1 shadow">
+                        <img id="q-img-el" src="" alt="題目附圖" class="max-h-40 w-auto object-contain mx-auto" />
+                    </div>
+
+                    <div id="q-feedback" class="text-xs md:text-sm font-black text-rose-600 min-h-[20px] mt-1"></div>
+                </div>
+            </div>
+
+            <!-- 6 個地洞草地區 -->
+            <div id="holes-grid" class="w-full grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6 md:gap-x-8 md:gap-y-8 my-auto py-4 px-2 md:px-8">
+                <!-- 由 JS 動態生成 6 個地洞與舉牌地鼠 -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= 彈窗 1：遊戲結束結算與錯題本 Modal ================= -->
+    <div id="gameover-modal" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-[#fef9c3] border-[6px] border-[#92400e] rounded-3xl max-w-xl w-full p-5 md:p-7 shadow-2xl max-h-[92vh] overflow-y-auto custom-scroll text-center">
+            <div class="text-5xl mb-1">🎉🐹🏆</div>
+            <h2 id="gameover-title" class="text-2xl md:text-3xl font-black text-amber-950">挑戰時間到！</h2>
+            <p id="gameover-subtitle" class="text-xs md:text-sm font-bold text-amber-800 mt-0.5">國中一年級 (七年級)</p>
+
+            <!-- 破紀錄橫幅 -->
+            <div id="new-record-banner" class="hidden mt-2 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-400 text-amber-950 font-black text-sm py-1.5 px-4 rounded-full border-2 border-amber-700 shadow animate-bounce">
+                🎊 恭喜！打破你的個人最高分紀錄！ 🎊
+            </div>
+
+            <!-- 分數與詳細戰報統計卡片 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 my-4 bg-amber-100 p-3 rounded-2xl border-2 border-amber-500">
+                <div>
+                    <span class="text-xs text-amber-800 font-bold block">本次總得分</span>
+                    <span id="final-score" class="text-2xl font-black text-rose-600">0</span>
+                </div>
+                <div class="border-l border-amber-300">
+                    <span class="text-xs text-amber-800 font-bold block">答對 / 答錯</span>
+                    <span class="text-lg font-black"><span id="final-correct" class="text-emerald-700">0</span> / <span id="final-wrong" class="text-rose-600">0</span></span>
+                </div>
+                <div class="border-l border-amber-300">
+                    <span class="text-xs text-amber-800 font-bold block">挑戰耗時</span>
+                    <span id="final-time" class="text-lg font-black text-indigo-800">90秒</span>
+                    <span id="final-time-detail" class="block text-[10px] font-bold text-amber-700">+0s / -0s</span>
+                </div>
+                <div class="border-l border-amber-300">
+                    <span class="text-xs text-amber-800 font-bold block">本機最高分</span>
+                    <span id="final-best" class="text-2xl font-black text-amber-900">0</span>
+                </div>
+            </div>
+
+            <!-- 登記排行榜表單 -->
+            <div class="bg-white border-2 border-amber-600 rounded-2xl p-3.5 mb-4 text-left shadow-inner">
+                <label class="text-xs md:text-sm font-black text-amber-950 block mb-2">
+                    🏆 登記成績至雲端英雄榜（將依年級與挑戰模式分別排名）：
+                </label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="player-name-input" maxlength="14" placeholder="請輸入班級座號或姓名..." class="flex-1 bg-amber-50 border-2 border-amber-500 rounded-xl px-3 py-2 text-sm font-black text-amber-950 focus:outline-none focus:border-emerald-600" />
+                    <button id="btn-submit-score" onclick="submitScoreToCloud()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-sm border-2 border-amber-700 shadow transition whitespace-nowrap">
+                        🚀 送出成績
+                    </button>
+                </div>
+                <p id="submit-status-msg" class="text-xs font-bold text-emerald-700 mt-1.5 hidden"></p>
+            </div>
+
+            <!-- 錯題本預覽與下載 -->
+            <div class="bg-amber-100/90 border-2 border-amber-500 rounded-2xl p-3.5 mb-5 text-left">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs md:text-sm font-black text-amber-950">📝 本局錯題複習 (<span id="wrong-count-label">0</span>題)：</span>
+                    <button id="btn-download-wrong" onclick="downloadWrongQuestionsTxt()" class="hidden px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs shadow">
+                        📥 下載錯題本 (.txt)
+                    </button>
+                </div>
+                <div id="wrong-list-box" class="max-h-36 overflow-y-auto custom-scroll space-y-1.5 text-xs">
+                    <p class="text-emerald-800 font-bold text-center py-3">✨ 太強了！本局沒有任何答錯的題目！</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-3">
+                <button onclick="startGame()" class="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm md:text-base border-2 border-emerald-900 shadow">
+                    🔄 再玩一局
+                </button>
+                <button onclick="openLeaderboardModal()" class="px-6 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-sm md:text-base border-2 border-amber-800 shadow">
+                    🏆 查看排行榜
+                </button>
+                <button onclick="backToMenu()" class="px-6 py-2.5 rounded-full bg-slate-700 hover:bg-slate-600 text-white font-black text-sm md:text-base border-2 border-slate-900 shadow">
+                    ⚙️ 返回主選單
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 彈窗 2：英雄排行榜 Modal ================= -->
+    <div id="leaderboard-modal" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-[#fef9c3] border-[6px] border-[#92400e] rounded-3xl max-w-lg w-full p-5 md:p-6 shadow-2xl flex flex-col max-h-[88vh]">
+            <div class="text-center border-b-2 border-amber-300 pb-3">
+                <h2 class="text-2xl md:text-3xl font-black text-amber-950">🏆 英雄排行榜</h2>
+                <p class="text-xs font-bold text-amber-800 mt-1">限時模式依總分排名；練習模式依「答對數 ➔ 耗時短」優先排名！</p>
+            </div>
+
+            <!-- 排行榜模式切換頁籤 -->
+            <div class="grid grid-cols-2 gap-2 mt-3 bg-amber-200/70 p-1 rounded-xl border border-amber-500">
+                <button id="lb-tab-timed" onclick="switchLeaderboardMode('timed')" class="py-1.5 rounded-lg font-black text-xs md:text-sm bg-amber-800 text-white shadow">
+                    ⏱️ 限時挑戰榜 (90秒)
+                </button>
+                <button id="lb-tab-practice" onclick="switchLeaderboardMode('practice')" class="py-1.5 rounded-lg font-black text-xs md:text-sm text-amber-900 hover:bg-amber-300/60">
+                    ♾️ 練習所有題庫榜
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 my-3">
+                <label class="text-sm font-black text-amber-950 whitespace-nowrap">觀看年級：</label>
+                <select id="leaderboard-grade-select" onchange="renderLeaderboardList()" class="flex-1 bg-white border-2 border-amber-600 rounded-xl px-3 py-2 text-sm font-black text-amber-950 focus:outline-none">
+                    <!-- JS 動態載入小一～國三 -->
+                </select>
+                <button onclick="fetchLeaderboardFromCloud(true)" class="px-3 py-2 rounded-xl bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold text-xs border border-amber-600 shrink-0">
+                    🔄 重新整理
+                </button>
+            </div>
+
+            <div id="leaderboard-list-container" class="flex-1 overflow-y-auto custom-scroll space-y-2.5 pr-1 py-1 min-h-[240px]">
+                <!-- JS 動態渲染排行榜列 -->
+            </div>
+
+            <div class="border-t-2 border-amber-300 pt-3 mt-3 text-center">
+                <button onclick="closeLeaderboardModal()" class="px-8 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-black text-sm shadow">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 彈窗 3：管理者題庫上傳與管理中心 Modal ================= -->
+    <div id="admin-modal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-3 md:p-5 backdrop-blur-sm">
+        <div class="bg-[#fef9c3] border-[6px] border-[#92400e] rounded-3xl max-w-4xl w-full p-4 md:p-6 shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto custom-scroll">
+            <div class="flex items-center justify-between border-b-2 border-amber-400 pb-3 mb-4">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-3xl">🔐</span>
+                    <div>
+                        <h2 class="text-xl md:text-2xl font-black text-amber-950">管理者題庫上傳與管理中心</h2>
+                        <p class="text-xs font-bold text-amber-800">支援完整題庫 PDF 自動辨識（如 250 題技藝競賽題庫）、文字檔 (.txt/.csv) 與圖片檔</p>
+                    </div>
+                </div>
+                <button onclick="closeAdminModal()" class="px-4 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs md:text-sm">
+                    ✕ 關閉
+                </button>
+            </div>
+
+            <!-- 密碼解鎖畫面 -->
+            <div id="admin-lock-panel" class="py-8 text-center">
+                <p class="text-sm md:text-base font-black text-amber-950 mb-3">請輸入管理者密碼以解鎖題庫上傳功能：</p>
+                <div class="flex justify-center gap-2 max-w-xs mx-auto">
+                    <input type="password" id="admin-pwd-input" placeholder="輸入管理密碼..." class="flex-1 bg-white border-2 border-amber-600 rounded-xl px-3.5 py-2 text-center font-black text-amber-950 focus:outline-none" onkeydown="if(event.key==='Enter') unlockAdminPanel()" />
+                    <button onclick="unlockAdminPanel()" class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-sm shadow">
+                        解鎖
+                    </button>
+                </div>
+                <p id="admin-pwd-error" class="text-xs font-bold text-rose-600 mt-2 hidden">❌ 密碼錯誤，請重新輸入！</p>
+            </div>
+
+            <!-- 解鎖後的管理後台內容 -->
+            <div id="admin-content-panel" class="hidden space-y-4">
+                
+                <!-- 步驟 1：設定適用年級與科目名稱（預設空白，上傳檔案自動帶入檔名） -->
+                <div class="bg-amber-100 border-2 border-amber-500 rounded-2xl p-4">
+                    <h3 class="text-sm md:text-base font-black text-amber-950 mb-3 flex items-center gap-1.5">
+                        <span class="w-6 h-6 rounded-full bg-amber-800 text-white text-xs flex items-center justify-center">1</span>
+                        設定本次上傳題庫的「適用年級」與「科目名稱」：
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-amber-900 mb-1">適用年級：</label>
+                            <select id="admin-grade-select" class="w-full bg-white border-2 border-amber-500 rounded-xl px-3 py-2 text-sm font-black text-amber-950">
+                                <option value="0">🌐 跨年級通用 (小一～國三皆可選)</option>
+                                <option value="1">國小一年級 (小一)</option>
+                                <option value="2">國小二年級 (小二)</option>
+                                <option value="3">國小三年級 (小三)</option>
+                                <option value="4">國小四年級 (小四)</option>
+                                <option value="5">國小五年級 (小五)</option>
+                                <option value="6">國小六年級 (小六)</option>
+                                <option value="7">國中一年級 (七年級)</option>
+                                <option value="8">國中二年級 (八年級)</option>
+                                <option value="9" selected>國三 (九年級 / 技藝競賽)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-amber-900 mb-1">科目 / 題庫名稱（上傳檔案時會自動帶入檔名，亦可自行輸入）：</label>
+                            <input type="text" id="admin-subject-input" value="" placeholder="上傳檔案後將自動帶入檔案名稱，或手動輸入..." class="w-full bg-white border-2 border-amber-500 rounded-xl px-3 py-2 text-sm font-black text-amber-950 focus:outline-none focus:border-emerald-600" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 步驟 2：選擇匯入方式 -->
+                <div class="bg-amber-100 border-2 border-amber-500 rounded-2xl p-4">
+                    <h3 class="text-sm md:text-base font-black text-amber-950 mb-2 flex items-center gap-1.5">
+                        <span class="w-6 h-6 rounded-full bg-amber-800 text-white text-xs flex items-center justify-center">2</span>
+                        選擇題庫匯入方式（支援完整題庫 PDF 自動辨識題號與最前方答案）：
+                    </h3>
+
+                    <!-- 匯入分頁切換 -->
+                    <div class="flex flex-wrap gap-2 mb-3 border-b border-amber-300 pb-3">
+                        <button id="tab-btn-pdf" onclick="switchAdminTab('pdf')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm bg-emerald-700 text-white shadow">
+                            📕 PDF 完整題庫自動辨識 (.pdf)
+                        </button>
+                        <button id="tab-btn-txt" onclick="switchAdminTab('txt')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm bg-amber-200 text-amber-900 hover:bg-amber-300">
+                            📄 文字檔 / 貼上題庫 (.txt / .csv)
+                        </button>
+                        <button id="tab-btn-img" onclick="switchAdminTab('img')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm bg-amber-200 text-amber-900 hover:bg-amber-300">
+                            🖼️ 圖片檔上傳 (.png / .jpg)
+                        </button>
+                        <button id="tab-btn-manual" onclick="switchAdminTab('manual')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm bg-amber-200 text-amber-900 hover:bg-amber-300">
+                            ✏️ 單題手動新增
+                        </button>
+                    </div>
+
+                    <!-- 分頁 A：PDF 完整題庫上傳 -->
+                    <div id="admin-tab-pdf" class="space-y-3">
+                        <div class="bg-emerald-50 border border-emerald-500 rounded-xl p-3 text-xs text-emerald-950 leading-relaxed">
+                            <strong class="block text-emerald-800 mb-1">💡 智慧型 PDF 題庫自動辨識引擎說明：</strong>
+                            • <strong>自動填入檔名</strong>：選擇 PDF 檔案後，上方「科目/題庫名稱」會自動填入該檔案名稱（自動去除副檔名與 `08@` 等前綴）。<br>
+                            • <strong>250 題完整定位與自動打亂選項</strong>：系統會鎖定第 1～250 題的題號與最前面的正確答案 `(1)~(4)`，自動剔除選項號碼並隨機打亂四個選項，且若題目含「如圖、下圖、符號」等關鍵字會自動裁切附圖（已避開左側答案欄）！
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <input type="file" id="pdf-file-input" accept=".pdf" onchange="handlePdfFileUpload(event)" class="text-xs font-bold text-amber-950 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-rose-600 file:text-white hover:file:bg-rose-500 cursor-pointer" />
+                            <span id="pdf-parse-status" class="text-xs md:text-sm font-black text-emerald-800"></span>
+                        </div>
+
+                        <!-- PDF 辨識預覽確認框 -->
+                        <div id="pdf-preview-box" class="hidden bg-white border-2 border-emerald-600 rounded-2xl p-4 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200 pb-2">
+                                <div>
+                                    <h4 id="pdf-preview-title" class="text-base font-black text-emerald-900">🎉 智慧辨識成功！</h4>
+                                    <p class="text-xs text-amber-800 font-bold">已自動將最前面的數字設為正解、去除 (1)~(4) 編號並打亂誘答選項。</p>
+                                </div>
+                                <button onclick="confirmImportParsedPdfQuestions()" class="px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs md:text-sm shadow-lg">
+                                    ➕ 確認將這批題目全部加入題庫
+                                </button>
+                            </div>
+                            <div id="pdf-preview-list" class="max-h-56 overflow-y-auto custom-scroll space-y-2 text-xs pr-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- 分頁 B：文字檔 / 貼上文字匯入 -->
+                    <div id="admin-tab-txt" class="hidden space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <input type="file" id="txt-file-input" accept=".txt,.csv" onchange="handleTxtFileUpload(event)" class="text-xs font-bold text-amber-950 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-amber-700 file:text-white cursor-pointer" />
+                            <button onclick="downloadSampleTxtTemplate()" class="px-3 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold text-xs border border-amber-500">
+                                📥 下載文字題庫範本 (.txt)
+                            </button>
+                        </div>
+                        <textarea id="bulk-text-input" rows="5" placeholder="可直接貼上題庫文字（支援技藝競賽格式如：(4) 1. 題目...(1)選項A(2)選項B(3)選項C(4)選項D，或每行一題 CSV：題目,正解,誘答1,誘答2,誘答3）" class="w-full bg-white border-2 border-amber-500 rounded-xl p-3 text-xs font-bold text-slate-800 focus:outline-none"></textarea>
+                        <button onclick="parseAndAddBulkText()" class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs md:text-sm shadow">
+                            ➕ 解析文字並加入題庫
+                        </button>
+                    </div>
+
+                    <!-- 分頁 C：圖片檔題庫上傳 -->
+                    <div id="admin-tab-img" class="hidden space-y-3">
+                        <p class="text-xs text-amber-900 font-bold">可一次選取多張題目截圖（預設選項為 A, B, C, D，選取圖片後也會自動將檔名帶入科目名稱）：</p>
+                        <input type="file" id="img-file-input" accept="image/*" multiple onchange="handleImageFilesUpload(event)" class="text-xs font-bold text-amber-950 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-indigo-600 file:text-white cursor-pointer" />
+                        <div id="staged-images-container" class="space-y-2 max-h-60 overflow-y-auto custom-scroll"></div>
+                        <button id="btn-confirm-imgs" onclick="confirmStagedImagesToBank()" class="hidden px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs md:text-sm shadow">
+                            ➕ 將上方圖片題全部加入題庫
+                        </button>
+                    </div>
+
+                    <!-- 分頁 D：單題手動新增 -->
+                    <div id="admin-tab-manual" class="hidden space-y-2.5">
+                        <input type="text" id="manual-q-input" placeholder="請輸入題目敘述..." class="w-full bg-white border-2 border-amber-500 rounded-xl px-3 py-2 text-xs md:text-sm font-bold" />
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <input type="text" id="manual-ans-input" placeholder="正確答案 (必填)" class="bg-emerald-50 border-2 border-emerald-600 rounded-xl px-3 py-2 text-xs font-black text-emerald-950" />
+                            <input type="text" id="manual-w1-input" placeholder="錯誤誘答 1" class="bg-white border-2 border-amber-400 rounded-xl px-3 py-2 text-xs font-bold" />
+                            <input type="text" id="manual-w2-input" placeholder="錯誤誘答 2" class="bg-white border-2 border-amber-400 rounded-xl px-3 py-2 text-xs font-bold" />
+                            <input type="text" id="manual-w3-input" placeholder="錯誤誘答 3" class="bg-white border-2 border-amber-400 rounded-xl px-3 py-2 text-xs font-bold" />
+                        </div>
+                        <button onclick="addManualQuestion()" class="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-xs md:text-sm shadow">
+                            ➕ 新增此題
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 步驟 3：目前已儲存的自訂題庫清單與雲端同步 -->
+                <div class="bg-amber-100 border-2 border-amber-500 rounded-2xl p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm md:text-base font-black text-amber-950">
+                            📦 目前已儲存的自訂題庫（共 <span id="custom-bank-total" class="text-emerald-700">0</span> 題）
+                        </h3>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button onclick="syncQuestionsToCloud()" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow">
+                                ☁️ 同步題庫至雲端試算表
+                            </button>
+                            <button onclick="exportCustomBankJson()" class="px-3 py-1.5 rounded-xl bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs shadow">
+                                💾 匯出備份檔
+                            </button>
+                            <label class="px-3 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs shadow cursor-pointer">
+                                📂 匯入備份檔
+                                <input type="file" accept=".json" onchange="importCustomBankJson(event)" class="hidden" />
+                            </label>
+                            <button onclick="clearAllCustomQuestions()" class="px-3 py-1.5 rounded-xl bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs shadow">
+                                🗑️ 清空題庫
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 搜尋與篩選列 -->
+                    <div class="flex flex-wrap items-center gap-2 mb-2.5">
+                        <input type="text" id="bank-search-input" oninput="updateCustomBankUI()" placeholder="🔍 搜尋題號、題目關鍵字或科目名稱..." class="flex-1 min-w-[180px] bg-white border border-amber-500 rounded-lg px-3 py-1.5 text-xs font-bold text-amber-950" />
+                        <label class="flex items-center gap-1 text-xs font-black text-amber-900 bg-amber-200/80 px-2.5 py-1.5 rounded-lg border border-amber-400 cursor-pointer">
+                            <input type="checkbox" id="filter-need-img" onchange="updateCustomBankUI()" />
+                            🎯 只顯示含「圖/符號」關鍵字之題目
+                        </label>
+                    </div>
+
+                    <div id="custom-bank-list" class="max-h-64 overflow-y-auto custom-scroll space-y-1.5 pr-1 text-xs"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. 全域常數與 Google Apps Script (GAS) 雲端網址設定
+        // =========================================================================
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyfgpPB0_ABIlv2IAvoMGtss4-BVZ390ywr5DTpTNj5jP_BLu8lh5820csHjlaRCNLdLQ/exec';
+        const ADMIN_PASSWORD = 'LKJHMATH';
+        const STORAGE_KEY_SETTINGS = 'math_gophers_settings_v3';
+        const STORAGE_KEY_BEST = 'math_gophers_personal_best_v3';
+        const STORAGE_KEY_CUSTOM_BANK = 'math_gophers_custom_bank_v3';
+        const STORAGE_KEY_WRONGBOOK = 'math_gophers_student_wrongbook_v1';
+
+        // 設定 PDF.js Worker
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        const GRADE_NAMES = {
+            0: '跨年級通用',
+            1: '國小一年級 (小一)',
+            2: '國小二年級 (小二)',
+            3: '國小三年級 (小三)',
+            4: '國小四年級 (小四)',
+            5: '國小五年級 (小五)',
+            6: '國小六年級 (小六)',
+            7: '國中一年級 (七年級)',
+            8: '國中二年級 (八年級)',
+            9: '國中三年級 (九年級)'
+        };
+
+        const GRADE_SHORT = {
+            1: '小一', 2: '小二', 3: '小三', 4: '小四', 5: '小五', 6: '小六',
+            7: '國一 (七年級)', 8: '國二 (八年級)', 9: '國三 (九年級)'
+        };
+
+        // 各年級段考單元說明
+        const SCOPE_DESCRIPTIONS = {
+            '1_1_1': '10 以內的數、比長短與高矮、順序與第幾',
+            '1_1_2': '分與合、10 以內的加法與減法應用',
+            '1_1_3': '30 以內的數、認識立體形體與整點半點時鐘',
+            '1_2_1': '50 以內的數、18 以內的進位加法與退位減法',
+            '1_2_2': '100 以內的數、認識錢幣 (1元/5元/10元/50元)',
+            '1_2_3': '二位數的不進位加法與不退位減法、幾月幾日星期幾',
+            '2_1_1': '200 以內的數、二位數的直式加減進退位',
+            '2_1_2': '認識公分與公尺、容量與重量的直接比較',
+            '2_1_3': '2、4、5、8 的乘法表與應用解題',
+            '2_2_1': '1000 以內的數、三位數加減法、3、6、7、9 的乘法',
+            '2_2_2': '認識角與平面圖形、年/月/日與經過時間',
+            '2_2_3': '兩步驟加減乘混合問題、分裝與平分（除法預備）',
+            '3_1_1': '10000 以內的數、四位數加減估算、毫米與公分換算',
+            '3_1_2': '二、三位數乘以一位數、角與正方形長方形性質',
+            '3_1_3': '認識除法（商與餘數）、同分母真分數的認識',
+            '3_2_1': '二、三位數除以一位數、公升與毫升換算、時間計算',
+            '3_2_2': '同分母分數的加減、一位小數的認識與加減',
+            '3_2_3': '公斤與公克換算、乘除互逆應用、認識面積 (平方公分)',
+            '4_1_1': '一億以內的數、多位數乘法與除法計算',
+            '4_1_2': '角度量測與旋轉角、假分數與帶分數互換、三角形分類',
+            '4_1_3': '整數四則運算規律（先乘除後加減）、二位小數加減',
+            '4_2_1': '多位數乘除、四邊形性質（平行四邊形/梯形）、概數與無條件捨去/四捨五入',
+            '4_2_2': '同分母帶分數加減、小數乘以整數、周長與面積公式 (平方公尺)',
+            '4_2_3': '時間的換算與加減（日/時/分/秒）、等值分數與簡單異分母比較、立方公分體積',
+            '5_1_1': '多位小數與加減、因數與倍數、公因數(GCD)與公倍數(LCM)',
+            '5_1_2': '擴分、約分與異分母分數的加減、多邊形內角和與三角形邊長關係',
+            '5_1_3': '平行四邊形、三角形與梯形面積公式、整數四則分配律應用',
+            '5_2_1': '分數的乘法、小數的乘法、扇形圓心角計算',
+            '5_2_2': '長方體與正方體體積、容積與不規則物體體積 (公秉/公升)',
+            '5_2_3': '整數除以整數轉小數、比率與百分率 (% 折扣/加成)、公噸與公頃換算',
+            '6_1_1': '質因數分解、最大公因數與最小公倍數互質應用、分數的除法',
+            '6_1_2': '小數的除法、比與比值、最簡整數比與正比關係',
+            '6_1_3': '圓周長與圓面積 (π=3.14)、扇形弧長與面積、速率問題 (距離/時間/速率)',
+            '6_2_1': '分數與小數四則混合運算、角柱與圓柱的體積與表面積',
+            '6_2_2': '基準量與比較量（母子差與母子和）、縮圖、放大圖與比例尺',
+            '6_2_3': '雞兔同籠、年齡與平均問題、圓形百分圖與可能性機率預備',
+            '7_1_1': '正負數與絕對值、整數的加減乘除四則運算、指數律與科學記號',
+            '7_1_2': '質因數分解、最大公因數與最小公倍數、正負分數的四則運算',
+            '7_1_3': '代數式化簡、一元一次方程式的列式與求解應用',
+            '7_2_1': '二元一次聯立方程式（代入消去法與加減消去法）與應用問題',
+            '7_2_2': '直角坐標平面與象限、二元一次方程式的圖形、比與比例式 (內項積=外項積)',
+            '7_2_3': '一元一次不等式的解與應用、統計圖表與對稱圖形三視圖',
+            '8_1_1': '乘法公式（和平方/差平方/平方差）、多項式的四則運算',
+            '8_1_2': '平方根與根式化簡、畢氏定理（商高定理）與坐標距離、因式分解（提公因式/十字交乘）',
+            '8_1_3': '一元二次方程式的解法（因式分解、配方法、公式解與判別式）',
+            '8_2_1': '等差數列（第 n 項公式）、等差級數前 n 項和與等比數列',
+            '8_2_2': '函數與線型函數值、三角形的內角與外角定理、多邊形內角和、三角形全等性質',
+            '8_2_3': '平行線與截角性質（同位角/內錯角/同側內角）、平行四邊形、梯形兩腰中點連線性質',
+            '9_1_1': '連比例與比例線段、平行線截比例線段性質、相似多邊形與相似三角形面積比',
+            '9_1_2': '點線圓關係（切線長定理、弦心距）、圓心角、圓周角與圓內接四邊形對角互補',
+            '9_1_3': '幾何推理證明、三角形的外心、內心與重心（三心性質與面積/角度綜合計算）',
+            '9_2_1': '二次函數的圖形平移、頂點坐標、對稱軸與最大值/最小值應用',
+            '9_2_2': '統計數據分析（四分位數 Q1/Q2/Q3 與四分位距 IQR、盒狀圖）、古典機率與樹狀圖',
+            '9_2_3': '空間中的立體圖形（角柱、角錐、圓柱、圓錐展開圖、表面積與體積）與會考總複習'
+        };
+
+        // =========================================================================
+        // 2. 遊戲狀態變數
+        // =========================================================================
+        let selectedBankMode = 'builtin'; // 'builtin', 'custom', 或 'wrongbook'
+        let selectedGrade = 7;
+        let selectedSemester = 1;
+        let selectedExam = 1;
+        let selectedPlayMode = 'timed'; // 'timed' (90秒) 或 'practice' (不限時全題庫)
+        let leaderboardViewMode = 'timed'; // 排行榜檢視模式
+        let soundEnabled = true;
+        let adminUnlocked = false;
+
+        let score = 0;
+        let combo = 0;
+        let isFever = false;
+        let feverTimeout = null;
+        let timeLeft = 90;
+        let gameStartTime = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let timeBonusTotal = 0;
+        let timePenaltyTotal = 0;
+        let lastTimeSpent = 0;
+        let gameTimerInterval = null;
+        let moleSpawnTimeout = null;
+        let isPlaying = false;
+
+        let currentQuestion = null;
+        let questionCount = 0;
+        let practiceQueue = []; // 不限時全題庫模式的題目佇列
+        let timedRetryQueue = []; // 限時挑戰錯題再練習佇列
+        let practiceTotalCount = 0;
+        let wrongQuestionsLog = [];
+
+        // 雲端與本機資料快取
+        let cloudScoresCache = [];
+        let customQuestionsBank = [];
+        let studentWrongBookBank = []; // 獨立存放學生匯入的錯題複習本
+        let parsedPdfQuestionsBuffer = [];
+        let stagedImageItems = [];
+        let activePasteQuestionId = null;
+
+        // 音效合成器
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) audioCtx = new AudioContextClass();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.09);
+                osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.22);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                osc.start(now);
+                osc.stop(now + 0.28);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(130, now + 0.25);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                osc.start(now);
+                osc.stop(now + 0.28);
+            } else if (type === 'clock') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(660, now);
+                osc.frequency.setValueAtTime(880, now + 0.08);
+                osc.frequency.setValueAtTime(1320, now + 0.16);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'bomb') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(45, now + 0.38);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = msg;
+            toast.className = `fixed top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full font-extrabold text-xs md:text-sm shadow-2xl border-2 transition-all ${
+                isError ? 'bg-rose-900/95 text-white border-rose-300' : 'bg-amber-950/95 text-amber-100 border-amber-400'
+            }`;
+            toast.classList.remove('hidden');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.add('hidden'), 3400);
+        }
+
+        // =========================================================================
+        // 3. 初始化、LocalStorage 記憶設定與雲端雙向同步
+        // =========================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadLocalCustomBank();
+            loadStudentWrongBook();
+            loadSavedSettings();
+            renderGradeButtons();
+            populateLeaderboardGradeSelect();
+            buildHolesDOM();
+            updateScopeDescription();
+            updateCustomBankUI();
+            updateWrongBookUI();
+
+            // 背景同步雲端最高分與雲端自訂題庫
+            preloadCloudScores();
+            preloadCloudQuestions();
+
+            // 全域剪貼簿 Ctrl+V 快速貼圖監聽
+            window.addEventListener('paste', handleGlobalPasteImage);
+        });
+
+        function loadSavedSettings() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    if (data.grade >= 1 && data.grade <= 9) selectedGrade = data.grade;
+                    if (data.semester === 1 || data.semester === 2) selectedSemester = data.semester;
+                    if (data.exam >= 1 && data.exam <= 3) selectedExam = data.exam;
+                    if (data.bankMode === 'builtin' || data.bankMode === 'custom' || data.bankMode === 'wrongbook') selectedBankMode = data.bankMode;
+                    if (data.playMode === 'timed' || data.playMode === 'practice') selectedPlayMode = data.playMode;
+                    if (data.playerName) {
+                        const nameInput = document.getElementById('player-name-input');
+                        if (nameInput) nameInput.value = data.playerName;
+                    }
+                }
+            } catch (e) {}
+            selectBankMode(selectedBankMode, true);
+            selectSemester(selectedSemester, true);
+            selectExam(selectedExam, true);
+            selectPlayMode(selectedPlayMode, true);
+        }
+
+        function saveCurrentSettings() {
+            try {
+                const nameInput = document.getElementById('player-name-input');
+                const payload = {
+                    grade: selectedGrade,
+                    semester: selectedSemester,
+                    exam: selectedExam,
+                    bankMode: selectedBankMode,
+                    playMode: selectedPlayMode,
+                    playerName: nameInput ? nameInput.value.trim() : ''
+                };
+                localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(payload));
+            } catch (e) {}
+        }
+
+        function getPersonalBest(grade) {
+            try {
+                const map = JSON.parse(localStorage.getItem(STORAGE_KEY_BEST) || '{}');
+                return Number(map[grade]) || 0;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function setPersonalBest(grade, newScore) {
+            try {
+                const map = JSON.parse(localStorage.getItem(STORAGE_KEY_BEST) || '{}');
+                if (newScore > (Number(map[grade]) || 0)) {
+                    map[grade] = newScore;
+                    localStorage.setItem(STORAGE_KEY_BEST, JSON.stringify(map));
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        // 繪製小一～國三按鈕
+        function renderGradeButtons() {
+            const container = document.getElementById('grade-buttons-grid');
+            container.innerHTML = '';
+            for (let g = 1; g <= 9; g++) {
+                const isSelected = (g === selectedGrade);
+                const btn = document.createElement('button');
+                const spanCol = g >= 7 ? 'md:col-span-2' : 'col-span-1';
+                btn.className = `${spanCol} py-2.5 px-2 rounded-2xl font-black text-xs md:text-sm border-2 transition-all ${
+                    isSelected
+                        ? 'bg-[#78350f] text-amber-100 border-[#451a03] shadow-md scale-[1.02]'
+                        : 'bg-white text-amber-950 border-amber-500 hover:bg-amber-100'
+                }`;
+                btn.innerText = GRADE_SHORT[g];
+                btn.onclick = () => {
+                    selectedGrade = g;
+                    saveCurrentSettings();
+                    renderGradeButtons();
+                    populateCustomSubjectsDropdown();
+                    updateScopeDescription();
+                    updateMenuBestBadges();
+                };
+                container.appendChild(btn);
+            }
+            updateMenuBestBadges();
+        }
+
+        function updateMenuBestBadges() {
+            const localBest = getPersonalBest(selectedGrade);
+            const personalEl = document.getElementById('personal-best-badge');
+            if (personalEl) {
+                personalEl.innerText = `🏅 本機最高：${localBest} 分`;
+            }
+
+            const cloudEl = document.getElementById('cloud-best-badge');
+            if (!cloudEl) return;
+
+            const gradeScores = cloudScoresCache
+                .filter(item => Number(item.grade) === Number(selectedGrade) && (item.playMode || 'timed') === 'timed')
+                .sort((a, b) => Number(b.score) - Number(a.score));
+
+            if (gradeScores.length > 0) {
+                const top = gradeScores[0];
+                cloudEl.innerText = `🏆 ${GRADE_SHORT[selectedGrade]} 雲端冠軍：${top.score} 分 (${top.name})`;
+            } else {
+                cloudEl.innerText = `🏆 ${GRADE_SHORT[selectedGrade]} 雲端最高：尚無紀錄`;
+            }
+        }
+
+        function selectBankMode(mode, skipSave = false) {
+            selectedBankMode = mode;
+            const btnBuiltin = document.getElementById('mode-btn-builtin');
+            const btnCustom = document.getElementById('mode-btn-custom');
+            const btnWrong = document.getElementById('mode-btn-wrongbook');
+            const panelBuiltin = document.getElementById('builtin-options-panel');
+            const panelCustom = document.getElementById('custom-options-panel');
+            const panelWrong = document.getElementById('wrongbook-options-panel');
+
+            btnBuiltin.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60';
+            btnCustom.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60';
+            if (btnWrong) btnWrong.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-indigo-900 hover:bg-indigo-200/60';
+
+            panelBuiltin.classList.add('hidden');
+            panelCustom.classList.add('hidden');
+            if (panelWrong) panelWrong.classList.add('hidden');
+
+            if (mode === 'builtin') {
+                btnBuiltin.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-amber-800 text-white shadow';
+                panelBuiltin.classList.remove('hidden');
+            } else if (mode === 'custom') {
+                btnCustom.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-emerald-700 text-white shadow';
+                panelCustom.classList.remove('hidden');
+                populateCustomSubjectsDropdown();
+            } else if (mode === 'wrongbook') {
+                if (btnWrong) btnWrong.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-indigo-700 text-white shadow';
+                if (panelWrong) panelWrong.classList.remove('hidden');
+                updateWrongBookUI();
+            }
+            if (!skipSave) saveCurrentSettings();
+            updateScopeDescription();
+        }
+
+        function selectSemester(sem, skipSave = false) {
+            selectedSemester = sem;
+            document.getElementById('sem-btn-1').className = sem === 1
+                ? 'py-2.5 px-3 rounded-xl font-black text-sm border-2 transition-all bg-amber-800 text-white border-amber-950 shadow'
+                : 'py-2.5 px-3 rounded-xl font-black text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-100';
+            document.getElementById('sem-btn-2').className = sem === 2
+                ? 'py-2.5 px-3 rounded-xl font-black text-sm border-2 transition-all bg-amber-800 text-white border-amber-950 shadow'
+                : 'py-2.5 px-3 rounded-xl font-black text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-100';
+            if (!skipSave) saveCurrentSettings();
+            updateScopeDescription();
+        }
+
+        function selectExam(ex, skipSave = false) {
+            selectedExam = ex;
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`exam-btn-${i}`);
+                btn.className = (i === ex)
+                    ? 'py-2.5 px-2 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-emerald-700 text-white border-emerald-950 shadow'
+                    : 'py-2.5 px-2 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-100';
+            }
+            if (!skipSave) saveCurrentSettings();
+            updateScopeDescription();
+        }
+
+        function selectPlayMode(mode, skipSave = false) {
+            selectedPlayMode = mode;
+            const btnTimed = document.getElementById('playmode-btn-timed');
+            const btnPractice = document.getElementById('playmode-btn-practice');
+            if (mode === 'timed') {
+                btnTimed.className = 'py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-amber-800 text-white border-amber-950 shadow flex items-center justify-center gap-1.5';
+                btnPractice.className = 'py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-200/60 flex items-center justify-center gap-1.5';
+            } else {
+                btnPractice.className = 'py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-emerald-700 text-white border-emerald-950 shadow flex items-center justify-center gap-1.5';
+                btnTimed.className = 'py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-200/60 flex items-center justify-center gap-1.5';
+            }
+            if (!skipSave) saveCurrentSettings();
+        }
+
+        function populateCustomSubjectsDropdown() {
+            const select = document.getElementById('custom-subject-select');
+            if (!select) return;
+            const currentVal = select.value;
+
+            // 永遠顯示所有教師自訂/技藝競賽題庫科目（不受限於當前點選的年級，且排除舊版誤混入的錯題本）
+            const validCustom = customQuestionsBank.filter(q => q.subject !== '📂 錯題複習本特訓');
+            const gradeMatching = validCustom.filter(q => Number(q.grade) === 0 || Number(q.grade) === Number(selectedGrade));
+
+            const subjectsMap = {};
+            validCustom.forEach(q => {
+                const s = q.subject || '自訂題庫';
+                subjectsMap[s] = (subjectsMap[s] || 0) + 1;
+            });
+
+            select.innerHTML = `<option value="ALL">📚 全部教師自訂與技藝題庫 (共 ${validCustom.length} 題)</option>`;
+            if (gradeMatching.length > 0 && gradeMatching.length < validCustom.length) {
+                const optGrade = document.createElement('option');
+                optGrade.value = '__GRADE_ONLY__';
+                optGrade.innerText = `🎯 僅限本年級 (${GRADE_SHORT[selectedGrade]}) 適用題庫 (${gradeMatching.length} 題)`;
+                select.appendChild(optGrade);
+            }
+
+            Object.keys(subjectsMap).forEach(subj => {
+                const opt = document.createElement('option');
+                opt.value = subj;
+                opt.innerText = `📘 ${subj} (${subjectsMap[subj]} 題)`;
+                select.appendChild(opt);
+            });
+
+            if ([...select.options].some(o => o.value === currentVal)) {
+                select.value = currentVal;
+            }
+        }
+
+        function getFilteredCustomQuestions() {
+            const subjSelect = document.getElementById('custom-subject-select');
+            const chosenSubj = subjSelect ? subjSelect.value : 'ALL';
+            const validCustom = customQuestionsBank.filter(q => q.subject !== '📂 錯題複習本特訓');
+
+            if (chosenSubj === 'ALL') {
+                return validCustom;
+            }
+            if (chosenSubj === '__GRADE_ONLY__') {
+                const gm = validCustom.filter(q => Number(q.grade) === 0 || Number(q.grade) === Number(selectedGrade));
+                return gm.length > 0 ? gm : validCustom;
+            }
+            return validCustom.filter(q => (q.subject || '自訂題庫') === chosenSubj);
+        }
+
+        function updateScopeDescription() {
+            const descEl = document.getElementById('scope-desc-text');
+            const subHeader = document.getElementById('header-subtitle');
+
+            if (selectedBankMode === 'wrongbook') {
+                descEl.innerText = `個人錯題複習本專區（共收錄 ${studentWrongBookBank.length} 道錯題，與教師題庫完全獨立）`;
+                subHeader.innerText = `${GRADE_NAMES[selectedGrade]} ｜ 📝 學生個人錯題複習本 (${studentWrongBookBank.length}題)`;
+            } else if (selectedBankMode === 'custom') {
+                const list = getFilteredCustomQuestions();
+                const subjSelect = document.getElementById('custom-subject-select');
+                const subjText = (subjSelect && subjSelect.value !== 'ALL' && subjSelect.value !== '__GRADE_ONLY__')
+                    ? subjSelect.value
+                    : '全部自訂與技藝競賽題庫';
+                descEl.innerText = `${subjText}（共收錄 ${list.length} 道題目，隨機洗牌選項防死背）`;
+                subHeader.innerText = `${GRADE_NAMES[selectedGrade]} ｜ 自訂題庫：${subjText}`;
+            } else {
+                const key = `${selectedGrade}_${selectedSemester}_${selectedExam}`;
+                const desc = SCOPE_DESCRIPTIONS[key] || '綜合數學能力測驗';
+                descEl.innerText = desc;
+                subHeader.innerText = `${GRADE_NAMES[selectedGrade]} ｜ ${selectedSemester === 1 ? '上學期' : '下學期'} ｜ 第 ${selectedExam} 次段考`;
+            }
+        }
+
+        // 學生個人錯題複習本存取與匯入（獨立儲存於 STORAGE_KEY_WRONGBOOK，絕不覆蓋或干擾教師題庫）
+        function loadStudentWrongBook() {
+            try {
+                // 自動將先前版本誤混入 customQuestionsBank 的錯題抽離出來，還原純淨的教師題庫
+                const legacyWrong = customQuestionsBank.filter(q => q.subject === '📂 錯題複習本特訓');
+                if (legacyWrong.length > 0) {
+                    customQuestionsBank = customQuestionsBank.filter(q => q.subject !== '📂 錯題複習本特訓');
+                    saveLocalCustomBank();
+                }
+
+                const raw = localStorage.getItem(STORAGE_KEY_WRONGBOOK);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) studentWrongBookBank = parsed;
+                } else if (legacyWrong.length > 0) {
+                    studentWrongBookBank = legacyWrong;
+                    saveStudentWrongBook();
+                }
+            } catch (e) {}
+        }
+
+        function saveStudentWrongBook() {
+            try {
+                localStorage.setItem(STORAGE_KEY_WRONGBOOK, JSON.stringify(studentWrongBookBank));
+            } catch (e) {}
+        }
+
+        function updateWrongBookUI() {
+            const countEl = document.getElementById('menu-wrongbook-count');
+            if (countEl) countEl.innerText = studentWrongBookBank.length;
+            const infoEl = document.getElementById('wrongbook-panel-info');
+            if (infoEl) {
+                if (studentWrongBookBank.length > 0) {
+                    infoEl.innerText = `✅ 目前已載入 ${studentWrongBookBank.length} 道個人錯題！可直接點擊下方「開始打地鼠解題」進行特訓，或隨時切換回上方「教師自訂題庫」。`;
+                } else {
+                    infoEl.innerText = '尚未匯入錯題本，請點擊上方紫色按鈕或右側「重新載入 .txt」上傳您下載的錯題複習本。';
+                }
+            }
+        }
+
+        function clearStudentWrongBook() {
+            studentWrongBookBank = [];
+            saveStudentWrongBook();
+            updateWrongBookUI();
+            updateScopeDescription();
+            showToast('🗑️ 已清空個人錯題複習本！');
+        }
+
+        // 學生端匯入錯題複習本 (.txt) 獨立特訓
+        function importStudentWrongBookTxt(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result || '';
+                const lines = text.split(/\r?\n/);
+                const imported = [];
+                let curQ = null;
+                let curAns = null;
+                let curWrong = null;
+
+                lines.forEach(line => {
+                    const mQ = line.match(/^第\s*\d+\s*題[:：]\s*(.+)$/);
+                    const mA = line.match(/✅\s*正確答案[:：]\s*(.+)$/);
+                    const mW = line.match(/❌\s*(?:當時誤敲|您的選擇)[:：]\s*(.+)$/);
+                    if (mQ) {
+                        if (curQ && curAns) {
+                            imported.push({
+                                id: `wb_${Date.now()}_${imported.length}`,
+                                grade: selectedGrade,
+                                subject: '📝 個人錯題複習本',
+                                q: curQ,
+                                a: curAns,
+                                distractors: ensureUniqueDistractors(curAns, curWrong ? [curWrong] : []),
+                                imgData: null
+                            });
+                        }
+                        curQ = mQ[1].trim();
+                        curAns = null;
+                        curWrong = null;
+                    } else if (mA) {
+                        curAns = mA[1].trim();
+                    } else if (mW) {
+                        curWrong = mW[1].trim();
+                    }
+                });
+
+                if (curQ && curAns) {
+                    imported.push({
+                        id: `wb_${Date.now()}_${imported.length}`,
+                        grade: selectedGrade,
+                        subject: '📝 個人錯題複習本',
+                        q: curQ,
+                        a: curAns,
+                        distractors: ensureUniqueDistractors(curAns, curWrong ? [curWrong] : []),
+                        imgData: null
+                    });
+                }
+
+                if (imported.length === 0) {
+                    showToast('⚠️ 無法從檔案中解析出錯題，請確認是否為本系統下載的錯題複習本 (.txt)！', true);
+                    return;
+                }
+
+                studentWrongBookBank = imported;
+                saveStudentWrongBook();
+                updateWrongBookUI();
+                selectBankMode('wrongbook');
+                showToast(`🎉 已成功匯入 ${imported.length} 道錯題至「📝 我的錯題複習本」！原本的教師題庫也完整保留！`);
+            };
+            reader.readAsText(file, 'UTF-8');
+            event.target.value = '';
+        }
+
+        // =========================================================================
+        // 4. 建立 6 個地洞與 SVG 舉牌地鼠 (支援多行文字排版)
+        // =========================================================================
+        function buildHolesDOM() {
+            const grid = document.getElementById('holes-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'relative h-44 md:h-52 flex flex-col items-center justify-end select-none';
+                cell.innerHTML = `
+                    <!-- 地洞遮罩容器 -->
+                    <div class="relative w-44 md:w-52 h-40 md:h-48 overflow-hidden flex justify-center items-end z-10 pointer-events-none">
+                        <div id="mole-${i}" onclick="whackMole(${i})" class="mole-wrapper w-40 md:w-48 cursor-pointer pointer-events-auto relative flex flex-col items-center">
+                            <!-- 地鼠舉牌與身體 SVG -->
+                            <div id="mole-svg-${i}" class="w-full"></div>
+                        </div>
+                    </div>
+                    <!-- 泥土地洞底座 -->
+                    <div class="w-44 md:w-52 h-11 md:h-13 bg-[#2a1205] rounded-[50%] border-[5px] border-[#6b3410] shadow-[inset_0_8px_14px_rgba(0,0,0,0.9),0_6px_0_#3f1d06] -mt-5 z-0 relative flex justify-around items-end pb-1">
+                        <span class="text-[10px] text-emerald-400">🌱</span>
+                        <span class="text-[10px] text-emerald-500">🌿</span>
+                        <span class="text-[10px] text-emerald-400">🌱</span>
+                    </div>
+                    <!-- 揮槌動畫層 -->
+                    <div id="hammer-layer-${i}" class="absolute inset-0 pointer-events-none z-30 flex items-center justify-center"></div>
+                `;
+                grid.appendChild(cell);
+            }
+        }
+
+        // 將長選項文字自動斷行（最多 3 行）供 SVG 木牌清晰呈現
+        function wrapSignLines(str) {
+            const text = String(str ?? '').trim();
+            if (!text) return [''];
+            if (text.length <= 9) return [text];
+            if (text.length <= 18) {
+                const mid = Math.ceil(text.length / 2);
+                return [text.slice(0, mid), text.slice(mid)];
+            }
+            const chunk = Math.ceil(text.length / 3);
+            return [
+                text.slice(0, chunk),
+                text.slice(chunk, chunk * 2),
+                text.slice(chunk * 2, chunk * 3 + 2)
+            ];
+        }
+
+        function escapeSvgText(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function renderMoleWithSignSVG(text, type = 'answer') {
+            let boardStroke = '#78350f';
+            let boardFill = '#fffbeb';
+            let textColor = '#0f172a';
+            let hatColor = '#facc15';
+
+            if (type === 'clock') {
+                boardStroke = '#0284c7';
+                boardFill = '#e0f2fe';
+                textColor = '#0369a1';
+                hatColor = '#38bdf8';
+            } else if (type === 'bomb') {
+                boardStroke = '#991b1b';
+                boardFill = '#fee2e2';
+                textColor = '#b91c1c';
+                hatColor = '#ef4444';
+            }
+
+            const lines = wrapSignLines(text);
+            let fontSize = 21;
+            const maxLineLen = Math.max(...lines.map(l => l.length));
+            if (lines.length === 1) {
+                if (maxLineLen <= 4) fontSize = 26;
+                else if (maxLineLen <= 7) fontSize = 21;
+                else fontSize = 17;
+            } else if (lines.length === 2) {
+                fontSize = maxLineLen > 9 ? 14 : 16;
+            } else {
+                fontSize = 13;
+            }
+
+            let textSvg = '';
+            if (lines.length === 1) {
+                textSvg = `<text x="110" y="48" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fontSize}" font-weight="900">${escapeSvgText(lines[0])}</text>`;
+            } else if (lines.length === 2) {
+                textSvg = `
+                    <text x="110" y="36" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fontSize}" font-weight="900">${escapeSvgText(lines[0])}</text>
+                    <text x="110" y="58" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fontSize}" font-weight="900">${escapeSvgText(lines[1])}</text>
+                `;
+            } else {
+                textSvg = `
+                    <text x="110" y="29" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fontSize}" font-weight="900">${escapeSvgText(lines[0])}</text>
+                    <text x="110" y="47" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fontSize}" font-weight="900">${escapeSvgText(lines[1])}</text>
+                    <text x="110" y="65" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fontSize}" font-weight="900">${escapeSvgText(lines[2])}</text>
+                `;
+            }
+
+            return `
+                <svg viewBox="0 0 220 190" class="w-full h-auto drop-shadow-md select-none">
+                    <!-- 木牌支撐桿 -->
+                    <rect x="104" y="74" width="12" height="32" fill="#78350f" />
+                    <!-- 寬版木牌 -->
+                    <rect x="8" y="8" width="204" height="74" rx="14" fill="${boardFill}" stroke="${boardStroke}" stroke-width="5" />
+                    <rect x="15" y="15" width="190" height="60" rx="10" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="5,4" />
+                    ${textSvg}
+                    <!-- 握牌小爪子 -->
+                    <ellipse cx="42" cy="82" rx="12" ry="8" fill="#d97706" stroke="#451a03" stroke-width="3" />
+                    <ellipse cx="178" cy="82" rx="12" ry="8" fill="#d97706" stroke="#451a03" stroke-width="3" />
+                    <!-- 地鼠雙耳 -->
+                    <circle cx="68" cy="108" r="14" fill="#92400e" stroke="#451a03" stroke-width="3.5" />
+                    <circle cx="68" cy="108" r="7" fill="#f472b6" />
+                    <circle cx="152" cy="108" r="14" fill="#92400e" stroke="#451a03" stroke-width="3.5" />
+                    <circle cx="152" cy="108" r="7" fill="#f472b6" />
+                    <!-- 地鼠身體 -->
+                    <path d="M58 188 L58 132 Q58 92 110 92 Q162 92 162 132 L162 188 Z" fill="#b45309" stroke="#451a03" stroke-width="4" />
+                    <!-- 工程頭盔橫條 -->
+                    <path d="M68 108 Q110 88 152 108" fill="none" stroke="${hatColor}" stroke-width="7" stroke-linecap="round" />
+                    <!-- 肚皮 -->
+                    <ellipse cx="110" cy="168" rx="34" ry="26" fill="#fef3c7" />
+                    <!-- 眼睛 -->
+                    <circle cx="90" cy="126" r="6.5" fill="#1e293b" />
+                    <circle cx="88" cy="124" r="2.5" fill="#ffffff" />
+                    <circle cx="130" cy="126" r="6.5" fill="#1e293b" />
+                    <circle cx="128" cy="124" r="2.5" fill="#ffffff" />
+                    <!-- 腮紅與鼻子 -->
+                    <ellipse cx="76" cy="134" rx="7" ry="4" fill="#fb7185" />
+                    <ellipse cx="144" cy="134" rx="7" ry="4" fill="#fb7185" />
+                    <ellipse cx="110" cy="133" rx="8" ry="5.5" fill="#78350f" />
+                    <!-- 門牙 -->
+                    <rect x="104" y="140" width="6" height="8" rx="1.5" fill="#ffffff" stroke="#451a03" stroke-width="1.5" />
+                    <rect x="110" y="140" width="6" height="8" rx="1.5" fill="#ffffff" stroke="#451a03" stroke-width="1.5" />
+                </svg>
+            `;
+        }
+
+        function getHammerStrikeSVG() {
+            return `
+                <svg viewBox="0 0 120 120" class="w-24 h-24 hammer-anim drop-shadow-xl">
+                    <path d="M45 78 L15 110" stroke="#78350f" stroke-width="10" stroke-linecap="round" />
+                    <g transform="rotate(35 65 48)">
+                        <rect x="30" y="22" width="70" height="46" rx="10" fill="#eab308" stroke="#451a03" stroke-width="4" />
+                        <rect x="48" y="24" width="14" height="42" fill="#ea580c" />
+                        <rect x="70" y="24" width="14" height="42" fill="#ea580c" />
+                    </g>
+                </svg>
+            `;
+        }
+
+        // =========================================================================
+        // 5. 唯一性選項過濾器與 108 課綱小一～國三數學動態題庫生成器
+        // =========================================================================
+        function randInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function gcd(a, b) {
+            a = Math.abs(a); b = Math.abs(b);
+            while (b) { [a, b] = [b, a % b]; }
+            return a || 1;
+        }
+
+        // 剝除選項開頭的 (1) (2) (A) 等編號，避免學生只背號碼
+        function stripOptionPrefix(str) {
+            return String(str ?? '')
+                .replace(/^\s*[\(（\[]\s*([1-4A-Da-d])\s*[\)）\]]\s*[.、．]?\s*/, '')
+                .trim();
+        }
+
+        // 強制確保 3 個干擾項與正解絕對不重複、彼此也不重複
+        function ensureUniqueDistractors(correctAns, rawDistractors) {
+            const ansStr = stripOptionPrefix(correctAns);
+            const uniqueSet = new Set();
+            const result = [];
+
+            if (Array.isArray(rawDistractors)) {
+                for (const d of rawDistractors) {
+                    const cleanD = stripOptionPrefix(d);
+                    if (cleanD !== '' && cleanD !== ansStr && !uniqueSet.has(cleanD)) {
+                        uniqueSet.add(cleanD);
+                        result.push(cleanD);
+                    }
+                    if (result.length >= 3) break;
+                }
+            }
+
+            // 若過濾後不足 3 個誘答，智慧產生不重複的替補值
+            const numMatch = ansStr.match(/^(-?\d+(\.\d+)?)(.*)$/);
+            let step = 1;
+            while (result.length < 3) {
+                let candidate = '';
+                if (numMatch) {
+                    const baseVal = parseFloat(numMatch[1]);
+                    const unit = numMatch[3] || '';
+                    const delta = (step % 2 === 1 ? 1 : -1) * Math.ceil(step / 2);
+                    const nextVal = Number.isInteger(baseVal) ? (baseVal + delta) : Number((baseVal + delta * 0.5).toFixed(2));
+                    candidate = `${nextVal}${unit}`;
+                } else {
+                    const fallbacks = ['以上皆非', '無法確定', '條件不足', '0', '1', '2'];
+                    candidate = fallbacks[(step - 1) % fallbacks.length];
+                }
+                if (candidate !== ansStr && !uniqueSet.has(candidate)) {
+                    uniqueSet.add(candidate);
+                    result.push(candidate);
+                }
+                step++;
+                if (step > 30) break;
+            }
+            return shuffleArray(result);
+        }
+
+        function createMathQuestion(grade, sem, exam) {
+            const key = `${grade}_${sem}_${exam}`;
+            let topic = '數學測驗';
+            let q = '';
+            let a = '';
+            let d = [];
+
+            switch (key) {
+                // ---------------- 小一 ----------------
+                case '1_1_1': {
+                    topic = '10以內的數與比大小';
+                    const x = randInt(1, 8);
+                    q = `比 ${x} 大 1 的數字是多少？`;
+                    a = `${x + 1}`;
+                    d = [`${x}`, `${x + 2}`, `${Math.max(0, x - 1)}`];
+                    break;
+                }
+                case '1_1_2': {
+                    topic = '10以內的加減';
+                    const x = randInt(2, 6), y = randInt(1, 9 - x);
+                    q = `計算：${x} + ${y} = ?`;
+                    a = `${x + y}`;
+                    d = [`${x + y + 1}`, `${x + y - 1}`, `${x + y + 2}`];
+                    break;
+                }
+                case '1_1_3': {
+                    topic = '30以內的數';
+                    const x = randInt(11, 28);
+                    q = `按照順序數，「${x}」的下一個數是多少？`;
+                    a = `${x + 1}`;
+                    d = [`${x - 1}`, `${x + 2}`, `${x + 10}`];
+                    break;
+                }
+                case '1_2_1': {
+                    topic = '18以內的進退位加減';
+                    const x = randInt(6, 9), y = randInt(5, 9);
+                    q = `計算：${x} + ${y} = ?`;
+                    a = `${x + y}`;
+                    d = [`${x + y - 1}`, `${x + y + 1}`, `${x + y + 2}`];
+                    break;
+                }
+                case '1_2_2': {
+                    topic = '100以內的數與錢幣';
+                    const tens = randInt(2, 9), ones = randInt(1, 8);
+                    q = `${tens} 個十和 ${ones} 個一，合起來是多少？`;
+                    a = `${tens * 10 + ones}`;
+                    d = [`${ones * 10 + tens}`, `${tens + ones}`, `${tens * 10}`];
+                    break;
+                }
+                case '1_2_3': {
+                    topic = '二位數加減';
+                    const x = randInt(2, 6) * 10 + randInt(1, 4);
+                    const y = randInt(1, 2) * 10 + randInt(1, 4);
+                    q = `計算：${x} + ${y} = ?`;
+                    a = `${x + y}`;
+                    d = [`${x + y + 10}`, `${x + y - 1}`, `${x - y}`];
+                    break;
+                }
+
+                // ---------------- 小二 ----------------
+                case '2_1_1': {
+                    topic = '二位數直式加減';
+                    const x = randInt(25, 68), y = randInt(15, 29);
+                    q = `計算：${x} + ${y} = ?`;
+                    a = `${x + y}`;
+                    d = [`${x + y - 10}`, `${x + y + 1}`, `${x + y + 10}`];
+                    break;
+                }
+                case '2_1_2': {
+                    topic = '長度單位換算';
+                    const m = randInt(2, 8), cm = randInt(3, 9);
+                    q = `${m} 公尺 ${cm} 公分，合起來是幾公分？`;
+                    a = `${m * 100 + cm}`;
+                    d = [`${m * 10 + cm}`, `${m * 100 + cm * 10}`, `${m + cm}`];
+                    break;
+                }
+                case '2_1_3': {
+                    topic = '九九乘法應用';
+                    const m1 = [2, 4, 5, 8][randInt(0, 3)], m2 = randInt(3, 9);
+                    q = `計算：${m1} × ${m2} = ?`;
+                    a = `${m1 * m2}`;
+                    d = [`${m1 * m2 + m1}`, `${m1 * m2 - m2}`, `${m1 + m2}`];
+                    break;
+                }
+                case '2_2_1': {
+                    topic = '九九乘法與三位數';
+                    const m1 = [3, 6, 7, 9][randInt(0, 3)], m2 = randInt(4, 9);
+                    q = `計算：${m1} × ${m2} = ?`;
+                    a = `${m1 * m2}`;
+                    d = [`${m1 * m2 + m1}`, `${m1 * m2 - 2}`, `${m1 * (m2 - 1)}`];
+                    break;
+                }
+                case '2_2_2': {
+                    topic = '年月日與時間';
+                    const yrs = randInt(2, 5);
+                    q = `${yrs} 年共有幾個月？`;
+                    a = `${yrs * 12}個月`;
+                    d = [`${yrs * 10}個月`, `${yrs * 24}個月`, `${yrs * 12 + 2}個月`];
+                    break;
+                }
+                case '2_2_3': {
+                    topic = '兩步驟乘加計算';
+                    const x = randInt(3, 7), y = randInt(4, 8), z = randInt(5, 15);
+                    q = `一包糖果有 ${x} 顆，買了 ${y} 包又多送 ${z} 顆，共有幾顆？`;
+                    a = `${x * y + z}`;
+                    d = [`${x * y}`, `${(x + z) * y}`, `${x + y + z}`];
+                    break;
+                }
+
+                // ---------------- 小三 ----------------
+                case '3_1_1': {
+                    topic = '四位數加減與長度';
+                    const cm = randInt(3, 18), mm = randInt(1, 9);
+                    q = `${cm} 公分 ${mm} 毫米 = 幾毫米？`;
+                    a = `${cm * 10 + mm}毫米`;
+                    d = [`${cm * 100 + mm}毫米`, `${cm + mm}毫米`, `${mm * 10 + cm}毫米`];
+                    break;
+                }
+                case '3_1_2': {
+                    topic = '二位數乘以一位數';
+                    const x = randInt(12, 45), y = randInt(3, 8);
+                    q = `計算：${x} × ${y} = ?`;
+                    a = `${x * y}`;
+                    d = [`${x * y + 10}`, `${x * y - y}`, `${x * y + y}`];
+                    break;
+                }
+                case '3_1_3': {
+                    topic = '除法商與餘數';
+                    const b = randInt(4, 9), qVal = randInt(3, 8), r = randInt(1, b - 1);
+                    const total = b * qVal + r;
+                    q = `計算：${total} ÷ ${b} 的「餘數」是多少？`;
+                    a = `${r}`;
+                    d = [`${qVal}`, `${r + 1}`, `${b - r}`];
+                    break;
+                }
+                case '3_2_1': {
+                    topic = '整數除法計算';
+                    const b = randInt(3, 8), qVal = randInt(12, 35);
+                    q = `計算：${b * qVal} ÷ ${b} = ?`;
+                    a = `${qVal}`;
+                    d = [`${qVal + 2}`, `${qVal - 1}`, `${qVal + 10}`];
+                    break;
+                }
+                case '3_2_2': {
+                    topic = '同分母分數與一位小數';
+                    const a1 = randInt(12, 48) / 10, a2 = randInt(11, 35) / 10;
+                    const sum = (a1 + a2).toFixed(1);
+                    q = `小數加法：${a1.toFixed(1)} + ${a2.toFixed(1)} = ?`;
+                    a = `${Number(sum)}`;
+                    d = [`${Number((a1 + a2 + 0.2).toFixed(1))}`, `${Number((a1 + a2 - 0.1).toFixed(1))}`, `${Number((a1 + a2 + 1).toFixed(1))}`];
+                    break;
+                }
+                case '3_2_3': {
+                    topic = '重量換算';
+                    const kg = randInt(2, 7), g = randInt(1, 9) * 50;
+                    q = `${kg} 公斤 ${g} 公克 = 幾公克？`;
+                    a = `${kg * 1000 + g}公克`;
+                    d = [`${kg * 100 + g}公克`, `${kg * 1000 + g * 10}公克`, `${kg * 10 + g}公克`];
+                    break;
+                }
+
+                // ---------------- 小四 ----------------
+                case '4_1_1': {
+                    topic = '多位數乘除';
+                    const x = randInt(11, 25), y = randInt(11, 20);
+                    q = `計算：${x} × ${y} = ?`;
+                    a = `${x * y}`;
+                    d = [`${x * y + 10}`, `${x * y - 10}`, `${x * y + x}`];
+                    break;
+                }
+                case '4_1_2': {
+                    topic = '假分數與帶分數互換';
+                    const den = randInt(3, 8), whole = randInt(2, 5), num = randInt(1, den - 1);
+                    q = `將帶分數 ${whole} 又 ${num}/${den} 化成假分數，分子是多少？`;
+                    a = `${whole * den + num}`;
+                    d = [`${whole * num + den}`, `${whole + den + num}`, `${whole * den - num}`];
+                    break;
+                }
+                case '4_1_3': {
+                    topic = '四則運算先乘除後加減';
+                    const x = randInt(15, 35), y = randInt(3, 7), z = randInt(2, 6);
+                    q = `計算：${x} + ${y} × ${z} = ?`;
+                    a = `${x + y * z}`;
+                    d = [`${(x + y) * z}`, `${x + y + z}`, `${x * y + z}`];
+                    break;
+                }
+                case '4_2_1': {
+                    topic = '概數與四捨五入';
+                    const th = randInt(2, 8), h = randInt(1, 9), rest = randInt(12, 89);
+                    const n = th * 1000 + h * 100 + rest;
+                    const rounded = Math.round(n / 1000) * 1000;
+                    q = `將 ${n} 用「四捨五入法」取概數到千位是多少？`;
+                    a = `${rounded}`;
+                    d = [`${rounded + 1000}`, `${th * 1000 + h * 100}`, `${(th - 1) * 1000}`];
+                    break;
+                }
+                case '4_2_2': {
+                    topic = '長方形周長與面積';
+                    const w = randInt(6, 15), h = randInt(4, 12);
+                    q = `長方形的長為 ${w} 公分、寬為 ${h} 公分，周長是多少公分？`;
+                    a = `${2 * (w + h)}公分`;
+                    d = [`${w * h}公分`, `${w + h}公分`, `${2 * w + h}公分`];
+                    break;
+                }
+                case '4_2_3': {
+                    topic = '時間換算';
+                    const hrs = randInt(2, 5), mins = randInt(10, 50);
+                    q = `${hrs} 小時 ${mins} 分鐘，合起來共是幾分鐘？`;
+                    a = `${hrs * 60 + mins}分`;
+                    d = [`${hrs * 100 + mins}分`, `${hrs * 60 - mins}分`, `${(hrs + 1) * 60 + mins}分`];
+                    break;
+                }
+
+                // ---------------- 小五 ----------------
+                case '5_1_1': {
+                    topic = '公因數與公倍數';
+                    const pairs = [[6, 8, 24], [4, 6, 12], [8, 12, 24], [6, 9, 18], [10, 15, 30], [9, 12, 36]];
+                    const [p1, p2, lcmVal] = pairs[randInt(0, pairs.length - 1)];
+                    q = `求 ${p1} 和 ${p2} 的「最小公倍數」是多少？`;
+                    a = `${lcmVal}`;
+                    d = [`${gcd(p1, p2)}`, `${p1 * p2}`, `${lcmVal * 2}`];
+                    break;
+                }
+                case '5_1_2': {
+                    topic = '三角形內角和';
+                    const a1 = randInt(40, 85), a2 = randInt(35, 70);
+                    q = `三角形的兩個內角分別為 ${a1}° 和 ${a2}°，第三個內角是幾度？`;
+                    a = `${180 - a1 - a2}°`;
+                    d = [`${a1 + a2}°`, `${360 - a1 - a2}°`, `${190 - a1 - a2}°`];
+                    break;
+                }
+                case '5_1_3': {
+                    topic = '三角形與梯形面積';
+                    const base = randInt(6, 16) * 2, height = randInt(5, 12);
+                    q = `底為 ${base} 公分、高為 ${height} 公分的三角形，面積是多少平方公分？`;
+                    a = `${(base * height) / 2}`;
+                    d = [`${base * height}`, `${base + height}`, `${(base * height) / 2 + 10}`];
+                    break;
+                }
+                case '5_2_1': {
+                    topic = '圓心角與扇形';
+                    const den = [2, 3, 4, 5, 6, 8, 9, 10, 12][randInt(0, 8)];
+                    q = `一個「1/${den} 圓」的扇形，它的圓心角是幾度？`;
+                    a = `${360 / den}°`;
+                    d = [`${180 / den}°`, `${360 / den + 15}°`, `${100 / den}°`];
+                    break;
+                }
+                case '5_2_2': {
+                    topic = '長方體體積';
+                    const l = randInt(4, 10), w = randInt(3, 8), h = randInt(2, 6);
+                    q = `長方體的長 ${l}cm、寬 ${w}cm、高 ${h}cm，體積是多少立方公分？`;
+                    a = `${l * w * h}`;
+                    d = [`${(l + w + h) * 4}`, `${l * w + h}`, `${l * w * h + 20}`];
+                    break;
+                }
+                case '5_2_3': {
+                    topic = '百分率與折扣';
+                    const price = randInt(2, 9) * 100;
+                    const off = [7, 8, 9][randInt(0, 2)];
+                    q = `定價 ${price} 元的衣服打「${off} 折」出售，售價是多少元？`;
+                    a = `${(price * off) / 10}元`;
+                    d = [`${price - off * 10}元`, `${(price * (10 - off)) / 10}元`, `${price - off}元`];
+                    break;
+                }
+
+                // ---------------- 小六 ----------------
+                case '6_1_1': {
+                    topic = '分數的除法';
+                    const n = randInt(2, 8), den = randInt(3, 7);
+                    q = `計算：${n} ÷ (1/${den}) = ?`;
+                    a = `${n * den}`;
+                    d = [`${n}/${den}`, `${n + den}`, `${den}`];
+                    break;
+                }
+                case '6_1_2': {
+                    topic = '最簡整數比';
+                    const k = randInt(2, 6), p = randInt(2, 5), qv = p + randInt(1, 4);
+                    const g = gcd(p, qv);
+                    const sp = p / g, sq = qv / g;
+                    q = `將「${sp * k} : ${sq * k}」化為最簡整數比為何？`;
+                    a = `${sp}:${sq}`;
+                    d = [`${sq}:${sp}`, `${sp * 2}:${sq * 2}`, `${sp}:${sq + 1}`];
+                    break;
+                }
+                case '6_1_3': {
+                    topic = '圓周長與速率';
+                    const r = randInt(2, 10) * 5;
+                    const c = Number((2 * r * 3.14).toFixed(2));
+                    q = `半徑 ${r} 公分的圓，圓周長約是多少公分？(圓周率以 3.14 計算)`;
+                    a = `${c}`;
+                    d = [`${Number((r * 3.14).toFixed(2))}`, `${Number((r * r * 3.14).toFixed(2))}`, `${c + 31.4}`];
+                    break;
+                }
+                case '6_2_1': {
+                    topic = '角柱與圓柱體積';
+                    const area = randInt(12, 30), h = randInt(5, 10);
+                    q = `底面積為 ${area} 平方公分、高為 ${h} 公分的角柱，體積是多少立方公分？`;
+                    a = `${area * h}`;
+                    d = [`${(area * h) / 3}`, `${area + h}`, `${area * h * 2}`];
+                    break;
+                }
+                case '6_2_2': {
+                    topic = '基準量與比較量';
+                    const base = randInt(3, 9) * 10;
+                    const ratio = randInt(2, 4);
+                    q = `甲數是 ${base}，乙數是甲數的 ${ratio} 倍，甲、乙兩數的和是多少？`;
+                    a = `${base * (1 + ratio)}`;
+                    d = [`${base * ratio}`, `${base * (ratio - 1)}`, `${base + ratio}`];
+                    break;
+                }
+                case '6_2_3': {
+                    topic = '平均問題';
+                    const a1 = randInt(75, 90), a2 = a1 + 4, a3 = a1 + 8;
+                    q = `小明三次數學小考分別得 ${a1}、${a2}、${a3} 分，平均是幾分？`;
+                    a = `${a2}分`;
+                    d = [`${a1}分`, `${a3}分`, `${a2 + 2}分`];
+                    break;
+                }
+
+                // ---------------- 國一 (七年級) ----------------
+                case '7_1_1': {
+                    const sub = randInt(1, 3);
+                    if (sub === 1) {
+                        topic = '正負數四則運算';
+                        const x = randInt(-15, 15), y = randInt(-15, -1);
+                        const ans = x - y;
+                        q = `計算：(${x}) - (${y}) = ?`;
+                        a = `${ans}`;
+                        d = [`${x + y}`, `${-ans}`, `${ans + 4}`];
+                    } else if (sub === 2) {
+                        topic = '絕對值計算';
+                        const x = randInt(-25, -4), y = randInt(3, 15);
+                        const ans = Math.abs(x) - y;
+                        q = `計算：|${x}| - ${y} = ?`;
+                        a = `${ans}`;
+                        d = [`${x - y}`, `${Math.abs(x) + y}`, `${-ans}`];
+                    } else {
+                        topic = '指數律運算';
+                        const m = randInt(2, 6), n = randInt(2, 5);
+                        q = `化簡指數：2^${m} × 2^${n} = ?`;
+                        a = `2^${m + n}`;
+                        d = [`2^${m * n}`, `4^${m + n}`, `2^${Math.abs(m - n)}`];
+                    }
+                    break;
+                }
+                case '7_1_2': {
+                    const sub = randInt(1, 2);
+                    if (sub === 1) {
+                        topic = '質因數分解';
+                        const items = [
+                            [12, '2²×3', ['2×6', '2×3²', '4×3']],
+                            [18, '2×3²', ['2²×3', '3×6', '2×9']],
+                            [20, '2²×5', ['2×5²', '4×5', '2×10']],
+                            [24, '2³×3', ['2²×3²', '3×8', '2×12']],
+                            [28, '2²×7', ['2×7²', '4×7', '2×14']],
+                            [30, '2×3×5', ['2²×3×5', '5×6', '3×10']],
+                            [36, '2²×3²', ['2³×3', '4×9', '6²']],
+                            [42, '2×3×7', ['2²×7', '6×7', '3×14']],
+                            [45, '3²×5', ['3×5²', '9×5', '3×15']]
+                        ];
+                        const pick = items[randInt(0, items.length - 1)];
+                        q = `將 ${pick[0]} 進行標準分解式（質因數分解）：`;
+                        a = pick[1];
+                        d = pick[2];
+                    } else {
+                        topic = '最大公因數與最小公倍數';
+                        const k = randInt(3, 8);
+                        const x = 4 * k, y = 6 * k;
+                        q = `求 (${x}, ${y}) 的最大公因數為何？`;
+                        a = `${2 * k}`;
+                        d = [`${k}`, `${12 * k}`, `${4 * k}`];
+                    }
+                    break;
+                }
+                case '7_1_3': {
+                    topic = '一元一次方程式';
+                    const xVal = randInt(-6, 9);
+                    const coef = randInt(2, 6);
+                    const c = randInt(-10, 12);
+                    const rhs = coef * xVal + c;
+                    const signC = c >= 0 ? `+ ${c}` : `- ${Math.abs(c)}`;
+                    q = `解一元一次方程式：${coef}x ${signC} = ${rhs}，則 x = ?`;
+                    a = `${xVal}`;
+                    d = [`${-xVal}`, `${xVal + 2}`, `${xVal - 3}`];
+                    break;
+                }
+                case '7_2_1': {
+                    topic = '二元一次聯立方程式';
+                    const x = randInt(1, 8), y = randInt(1, 7);
+                    q = `若 x + y = ${x + y} 且 x - y = ${x - y}，則 x = ?`;
+                    a = `${x}`;
+                    d = [`${y}`, `${x + y}`, `${x + 2}`];
+                    break;
+                }
+                case '7_2_2': {
+                    const sub = randInt(1, 2);
+                    if (sub === 1) {
+                        topic = '直角坐標與象限';
+                        const px = randInt(2, 9) * (Math.random() < 0.5 ? 1 : -1);
+                        const py = randInt(2, 9) * (Math.random() < 0.5 ? 1 : -1);
+                        let quad = '第一象限';
+                        if (px < 0 && py > 0) quad = '第二象限';
+                        else if (px < 0 && py < 0) quad = '第三象限';
+                        else if (px > 0 && py < 0) quad = '第四象限';
+                        q = `坐標平面上，點 P(${px}, ${py}) 位於哪一個象限？`;
+                        a = quad;
+                        d = ['第一象限', '第二象限', '第三象限', '第四象限'];
+                    } else {
+                        topic = '比例式求解';
+                        const m = randInt(2, 6), n = randInt(2, 7), k = randInt(2, 5);
+                        q = `若 ${m} : ${n} = ${m * k} : x，則 x = ?`;
+                        a = `${n * k}`;
+                        d = [`${m * k}`, `${n + k}`, `${n * (k + 1)}`];
+                    }
+                    break;
+                }
+                case '7_2_3': {
+                    topic = '一元一次不等式';
+                    const k = randInt(2, 5), xLim = randInt(2, 8);
+                    q = `解不等式：-${k}x ≥ ${-k * xLim}，其解為何？`;
+                    a = `x ≤ ${xLim}`;
+                    d = [`x ≥ ${xLim}`, `x ≤ -${xLim}`, `x ≥ -${xLim}`];
+                    break;
+                }
+
+                // ---------------- 國二 (八年級) ----------------
+                case '8_1_1': {
+                    topic = '乘法公式與多項式';
+                    const k = randInt(2, 9);
+                    q = `利用平方差公式展開：(x + ${k})(x - ${k}) = ?`;
+                    a = `x² - ${k * k}`;
+                    d = [`x² + ${k * k}`, `x² - ${2 * k}x + ${k * k}`, `x² - ${k}`];
+                    break;
+                }
+                case '8_1_2': {
+                    topic = '畢氏定理與平方根';
+                    const triples = [[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [7, 24, 25], [9, 12, 15]];
+                    const [leg1, leg2, hyp] = triples[randInt(0, triples.length - 1)];
+                    q = `直角三角形兩股長分別為 ${leg1} 與 ${leg2}，則斜邊長為何？`;
+                    a = `${hyp}`;
+                    d = [`${leg1 + leg2}`, `${hyp + 2}`, `${hyp - 1}`];
+                    break;
+                }
+                case '8_1_3': {
+                    topic = '一元二次方程式';
+                    const r1 = randInt(1, 6), r2 = randInt(r1 + 1, 9);
+                    const b = -(r1 + r2), c = r1 * r2;
+                    q = `一元二次方程式 x² ${b}x + ${c} = 0 的兩根之和為何？`;
+                    a = `${r1 + r2}`;
+                    d = [`${-(r1 + r2)}`, `${c}`, `${r2 - r1}`];
+                    break;
+                }
+                case '8_2_1': {
+                    topic = '等差數列與級數';
+                    const a1 = randInt(2, 10), diff = randInt(2, 6), n = randInt(6, 12);
+                    const an = a1 + (n - 1) * diff;
+                    q = `等差數列首項 a₁ = ${a1}，公差 d = ${diff}，則第 ${n} 項 a_${n} = ?`;
+                    a = `${an}`;
+                    d = [`${a1 + n * diff}`, `${an - diff}`, `${a1 * n}`];
+                    break;
+                }
+                case '8_2_2': {
+                    topic = '多邊形內角與外角';
+                    const n = randInt(5, 10);
+                    q = `正 ${n} 邊形的「內角和」是多少度？`;
+                    a = `${(n - 2) * 180}°`;
+                    d = [`${n * 180}°`, `360°`, `${(n - 1) * 180}°`];
+                    break;
+                }
+                case '8_2_3': {
+                    topic = '平行線截角與梯形中線';
+                    const topB = randInt(4, 12), botB = topB + randInt(2, 6) * 2;
+                    q = `梯形的上底為 ${topB}、下底為 ${botB}，則兩腰中點連線段長為何？`;
+                    a = `${(topB + botB) / 2}`;
+                    d = [`${topB + botB}`, `${botB - topB}`, `${(topB + botB) / 2 + 2}`];
+                    break;
+                }
+
+                // ---------------- 國三 (九年級) ----------------
+                case '9_1_1': {
+                    const sub = randInt(1, 3);
+                    if (sub === 1) {
+                        topic = '相似三角形面積比';
+                        const m = randInt(2, 5), n = m + randInt(1, 3);
+                        const g = gcd(m, n);
+                        const sm = m / g, sn = n / g;
+                        q = `兩相似三角形的對應邊長比為 ${sm} : ${sn}，則其「面積比」為何？`;
+                        a = `${sm * sm}:${sn * sn}`;
+                        d = [`${sm}:${sn}`, `${sm * 2}:${sn * 2}`, `${sm * sm * sm}:${sn * sn * sn}`];
+                    } else if (sub === 2) {
+                        topic = '三角形兩邊中點連線';
+                        const de = randInt(4, 15);
+                        q = `△ABC 中，D、E 分別為 AB、AC 的中點，若 DE = ${de}，則底邊 BC 長為何？`;
+                        a = `${de * 2}`;
+                        d = [`${de}`, `${de * 4}`, `${de + 2}`];
+                    } else {
+                        topic = '平行線截比例線段';
+                        const k = randInt(2, 4), p = randInt(2, 5), qv = p + randInt(1, 3);
+                        q = `△ABC 中 DE // BC，若 AD = ${p}、DB = ${qv}、AE = ${p * k}，則 EC = ?`;
+                        a = `${qv * k}`;
+                        d = [`${(p + qv) * k}`, `${p * k}`, `${qv * (k + 1)}`];
+                    }
+                    break;
+                }
+                case '9_1_2': {
+                    const sub = randInt(1, 4);
+                    if (sub === 1) {
+                        topic = '圓心角與圓周角';
+                        const inscrit = randInt(22, 75);
+                        q = `圓 O 中，同一弧所對的「圓周角」為 ${inscrit}°，則其所對的「圓心角」為幾度？`;
+                        a = `${inscrit * 2}°`;
+                        d = [`${inscrit}°`, `${180 - inscrit}°`, `${90 - inscrit}°`];
+                    } else if (sub === 2) {
+                        topic = '弦心距與弦長 (畢氏定理)';
+                        const sets = [
+                            [5, 3, 8], [10, 6, 16], [10, 8, 12], [13, 5, 24], [13, 12, 10], [15, 9, 24], [17, 8, 30]
+                        ];
+                        const [r, dist, chord] = sets[randInt(0, sets.length - 1)];
+                        q = `已知圓 O 半徑為 ${r}，某弦的弦心距為 ${dist}，則此「弦長」為多少？`;
+                        a = `${chord}`;
+                        d = [`${chord / 2}`, `${r + dist}`, `${chord + 4}`];
+                    } else if (sub === 3) {
+                        topic = '圓內接四邊形對角互補';
+                        const angA = randInt(62, 128);
+                        q = `四邊形 ABCD 為圓內接四邊形，若 ∠A = ${angA}°，則對角 ∠C = ?`;
+                        a = `${180 - angA}°`;
+                        d = [`${angA}°`, `${90 + Math.floor(angA / 2)}°`, `${360 - angA}°`];
+                    } else {
+                        topic = '圓外一點切線段長';
+                        const sets = [[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17]];
+                        const [r, tang, op] = sets[randInt(0, sets.length - 1)];
+                        q = `自圓 O 外一點 P 向圓作切線，切點為 A。若圓半徑 OA = ${r}，OP = ${op}，則切線段長 PA = ?`;
+                        a = `${tang}`;
+                        d = [`${op - r}`, `${tang * 2}`, `${r + op}`];
+                    }
+                    break;
+                }
+                case '9_1_3': {
+                    const sub = randInt(1, 3);
+                    if (sub === 1) {
+                        topic = '三角形重心性質 (2:1)';
+                        const gd = randInt(3, 12);
+                        q = `G 為 △ABC 的重心，AD 為中線。若 GD = ${gd}，則中線長 AD 為多少？`;
+                        a = `${gd * 3}`;
+                        d = [`${gd * 2}`, `${gd * 4}`, `${gd * 6}`];
+                    } else if (sub === 2) {
+                        topic = '三角形內心角度公式';
+                        const angA = randInt(20, 68) * 2;
+                        const bic = 90 + angA / 2;
+                        q = `I 為 △ABC 的內心，若頂角 ∠A = ${angA}°，則 ∠BIC 為幾度？`;
+                        a = `${bic}°`;
+                        d = [`${angA * 2}°`, `${180 - angA}°`, `${bic - 15}°`];
+                    } else {
+                        topic = '直角三角形外心與外接圓';
+                        const sets = [[6, 8, 10], [10, 24, 26], [12, 16, 20], [16, 30, 34]];
+                        const [l1, l2, hyp] = sets[randInt(0, sets.length - 1)];
+                        q = `直角三角形兩股長為 ${l1}、${l2}，則其「外接圓半徑」為多少？`;
+                        a = `${hyp / 2}`;
+                        d = [`${hyp}`, `${(l1 + l2 - hyp) / 2}`, `${l1}`];
+                    }
+                    break;
+                }
+                case '9_2_1': {
+                    const sub = randInt(1, 2);
+                    if (sub === 1) {
+                        topic = '二次函數頂點坐標';
+                        const h = randInt(1, 7) * (Math.random() < 0.5 ? 1 : -1);
+                        const k = randInt(-8, 9);
+                        const hExpr = h > 0 ? `(x - ${h})²` : `(x + ${Math.abs(h)})²`;
+                        const kExpr = k >= 0 ? `+ ${k}` : `- ${Math.abs(k)}`;
+                        q = `二次函數 y = 2${hExpr} ${kExpr} 的頂點坐標為何？`;
+                        a = `(${h}, ${k})`;
+                        d = [`(${-h}, ${k})`, `(${h}, ${-k})`, `(${-h}, ${-k})`];
+                    } else {
+                        topic = '二次函數極值';
+                        const h = randInt(1, 6), k = randInt(2, 15);
+                        q = `二次函數 y = -(x - ${h})² + ${k} 的「最大值」為多少？`;
+                        a = `${k}`;
+                        d = [`${h}`, `${-k}`, `${h + k}`];
+                    }
+                    break;
+                }
+                case '9_2_2': {
+                    const sub = randInt(1, 3);
+                    if (sub === 1) {
+                        topic = '統計四分位距 (IQR)';
+                        const q1 = randInt(40, 62), iqr = randInt(12, 26);
+                        const q3 = q1 + iqr;
+                        const q2 = Math.floor((q1 + q3) / 2);
+                        q = `某班測驗成績的第 1、2、3 四分位數分別為 Q₁=${q1}、Q₂=${q2}、Q₃=${q3}，則「四分位距 (IQR)」為何？`;
+                        a = `${iqr}`;
+                        d = [`${q2 - q1}`, `${q3 - q2}`, `${q3 + q1}`];
+                    } else if (sub === 2) {
+                        topic = '古典機率：袋中抽球';
+                        const r = randInt(2, 5), w = randInt(3, 6), b = randInt(2, 5);
+                        const tot = r + w + b;
+                        const g = gcd(r, tot);
+                        q = `袋中有紅球 ${r} 顆、白球 ${w} 顆、藍球 ${b} 顆，任取一球為「紅球」的機率為何？`;
+                        a = `${r / g}/${tot / g}`;
+                        d = [`${w / gcd(w, tot)}/${tot / gcd(w, tot)}`, `1/${r}`, `${r}/${w + b}`];
+                    } else {
+                        topic = '骰子與硬幣機率';
+                        const scenarios = [
+                            ['投擲一顆公正骰子一次，出現「質數（2, 3, 5）」的機率為何？', '1/2', ['1/3', '2/3', '1/6']],
+                            ['投擲一顆公正骰子一次，點數「大於 4」的機率為何？', '1/3', ['1/2', '2/3', '1/6']],
+                            ['同時投擲兩枚均勻硬幣，出現「兩正面」的機率為何？', '1/4', ['1/2', '1/3', '3/4']],
+                            ['同時投擲兩枚均勻硬幣，出現「一正一反」的機率為何？', '1/2', ['1/4', '1/3', '2/3']]
+                        ];
+                        const pick = scenarios[randInt(0, scenarios.length - 1)];
+                        q = pick[0];
+                        a = pick[1];
+                        d = pick[2];
+                    }
+                    break;
+                }
+                case '9_2_3':
+                default: {
+                    const sub = randInt(1, 3);
+                    if (sub === 1) {
+                        topic = '角柱與角錐點線面';
+                        const n = randInt(4, 8);
+                        q = `一個「${n} 角錐」共有幾條稜線（邊）？`;
+                        a = `${n * 2}條`;
+                        d = [`${n * 3}條`, `${n + 1}條`, `${n + 2}條`];
+                    } else if (sub === 2) {
+                        topic = '角柱與角錐頂點數';
+                        const n = randInt(5, 9);
+                        q = `一個「${n} 角柱」共有幾個頂點？`;
+                        a = `${n * 2}個`;
+                        d = [`${n + 1}個`, `${n * 3}個`, `${n + 2}個`];
+                    } else {
+                        topic = '圓柱體積計算';
+                        const r = randInt(2, 6), h = randInt(4, 10);
+                        q = `底面半徑為 ${r}、高為 ${h} 的圓柱體，其體積為多少？(以 π 表示)`;
+                        a = `${r * r * h}π`;
+                        d = [`${2 * r * h}π`, `${r * h}π`, `${r * r * 2}π`];
+                    }
+                    break;
+                }
+            }
+
+            return {
+                topic,
+                q,
+                a: stripOptionPrefix(a),
+                distractors: ensureUniqueDistractors(a, d),
+                imgData: null
+            };
+        }
+
+        // =========================================================================
+        // 6. 遊戲核心流程：支援「限時 90 秒（含錯題重考）」與「練習所有題庫（不限時）」
+        // =========================================================================
+        function startGame() {
+            initAudio();
+            if (selectedBankMode === 'wrongbook') {
+                if (studentWrongBookBank.length === 0) {
+                    showToast('⚠️ 目前「我的錯題複習本」是空的，請先點擊紫色按鈕匯入錯題複習本 (.txt)！', true);
+                    return;
+                }
+            } else if (selectedBankMode === 'custom') {
+                const avail = getFilteredCustomQuestions();
+                if (avail.length === 0) {
+                    showToast('⚠️ 目前尚無自訂題庫，請先點右上角「🔐 題庫管理」上傳 PDF 或文字題庫！', true);
+                    openAdminModal();
+                    return;
+                }
+            }
+
+            // 關閉所有彈窗並切換至遊戲畫面
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('gameover-modal').classList.remove('flex');
+            document.getElementById('menu-screen').classList.add('hidden');
+            const playScreen = document.getElementById('play-screen');
+            playScreen.classList.remove('hidden');
+            playScreen.classList.add('flex');
+
+            score = 0;
+            combo = 0;
+            isFever = false;
+            questionCount = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            timeBonusTotal = 0;
+            timePenaltyTotal = 0;
+            wrongQuestionsLog = [];
+            timedRetryQueue = [];
+            gameStartTime = Date.now();
+            isPlaying = true;
+
+            document.getElementById('score-display').innerText = '0';
+            document.getElementById('combo-badge').classList.add('hidden');
+            document.getElementById('game-stage').classList.remove('fever-active');
+            updateSkyTheme(90);
+
+            clearInterval(gameTimerInterval);
+            clearTimeout(moleSpawnTimeout);
+
+            const timerDisplay = document.getElementById('timer-display');
+            const timerUnit = document.getElementById('timer-unit');
+            const finishEarlyBtn = document.getElementById('btn-finish-early');
+            const skipBtn = document.getElementById('btn-skip-q');
+
+            if (selectedPlayMode === 'practice') {
+                // 不限時・練習所有題庫模式：建立不重複的完整題目佇列
+                if (selectedBankMode === 'wrongbook') {
+                    practiceQueue = shuffleArray([...studentWrongBookBank]);
+                } else if (selectedBankMode === 'custom') {
+                    practiceQueue = shuffleArray(getFilteredCustomQuestions());
+                } else {
+                    practiceQueue = [];
+                    const seenQ = new Set();
+                    for (let attempt = 0; attempt < 90 && practiceQueue.length < 30; attempt++) {
+                        const item = createMathQuestion(selectedGrade, selectedSemester, selectedExam);
+                        if (!seenQ.has(item.q)) {
+                            seenQ.add(item.q);
+                            practiceQueue.push(item);
+                        }
+                    }
+                }
+                practiceTotalCount = practiceQueue.length;
+                timerDisplay.innerText = '♾️ 不限時';
+                timerUnit.innerText = '';
+                finishEarlyBtn.classList.remove('hidden');
+                skipBtn.innerText = '🔄 換一題';
+            } else {
+                // 經典 90 秒限時挑戰
+                practiceQueue = [];
+                practiceTotalCount = 0;
+                timeLeft = 90;
+                timerDisplay.innerText = timeLeft;
+                timerUnit.innerText = '秒';
+                finishEarlyBtn.classList.add('hidden');
+                skipBtn.innerText = '🔄 換一題 (-3秒)';
+
+                gameTimerInterval = setInterval(() => {
+                    if (!isPlaying) return;
+                    timeLeft--;
+                    timerDisplay.innerText = Math.max(0, timeLeft);
+                    updateSkyTheme(timeLeft);
+                    if (timeLeft <= 0) {
+                        endGame(false);
+                    }
+                }, 1000);
+            }
+
+            nextQuestion();
+        }
+
+        function updateSkyTheme(sec) {
+            const stage = document.getElementById('game-stage');
+            const sun = document.getElementById('celestial-body');
+            stage.classList.remove('sky-day', 'sky-sunset', 'sky-night');
+            if (selectedPlayMode === 'practice' || sec > 40) {
+                stage.classList.add('sky-day');
+                sun.className = 'absolute top-6 right-8 w-16 h-16 md:w-20 md:h-20 rounded-full bg-yellow-300 border-4 border-amber-400 shadow-[0_0_40px_rgba(250,204,21,0.9)] transition-all duration-1000 pointer-events-none z-0';
+            } else if (sec > 15) {
+                stage.classList.add('sky-sunset');
+                sun.className = 'absolute top-14 right-12 w-16 h-16 md:w-20 md:h-20 rounded-full bg-orange-400 border-4 border-red-500 shadow-[0_0_45px_rgba(249,115,22,0.95)] transition-all duration-1000 pointer-events-none z-0';
+            } else {
+                stage.classList.add('sky-night');
+                sun.className = 'absolute top-8 right-10 w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-100 border-4 border-indigo-200 shadow-[0_0_35px_rgba(224,231,255,0.9)] transition-all duration-1000 pointer-events-none z-0';
+            }
+        }
+
+        function nextQuestion() {
+            if (!isPlaying) return;
+
+            if (selectedPlayMode === 'practice') {
+                if (practiceQueue.length === 0) {
+                    endGame(true);
+                    return;
+                }
+                const rawQ = practiceQueue.shift();
+                currentQuestion = normalizeQuestionItem(rawQ);
+                currentQuestion._hasFailedThisTurn = false;
+                questionCount++;
+                document.getElementById('q-counter-tag').innerText = `進度：已完成 ${correctCount} / ${practiceTotalCount} 題`;
+            } else {
+                questionCount++;
+                document.getElementById('q-counter-tag').innerText = `第 ${questionCount} 題`;
+                // 限時挑戰模式：若錯題重考佇列中有題目，有 40% 機率優先抽出錯題重考（選項重新洗牌）
+                if (timedRetryQueue.length > 0 && Math.random() < 0.4) {
+                    const retryItem = timedRetryQueue.shift();
+                    currentQuestion = normalizeQuestionItem(retryItem);
+                    currentQuestion.topic = `🔄 錯題重考：${currentQuestion.topic}`;
+                } else if (selectedBankMode === 'wrongbook') {
+                    const pick = studentWrongBookBank[randInt(0, studentWrongBookBank.length - 1)];
+                    currentQuestion = normalizeQuestionItem(pick);
+                } else if (selectedBankMode === 'custom') {
+                    const pool = getFilteredCustomQuestions();
+                    const pick = pool[randInt(0, pool.length - 1)];
+                    currentQuestion = normalizeQuestionItem(pick);
+                } else {
+                    currentQuestion = createMathQuestion(selectedGrade, selectedSemester, selectedExam);
+                }
+            }
+
+            document.getElementById('q-topic-tag').innerText = `📌 ${currentQuestion.topic || currentQuestion.subject || '精選題庫'}`;
+            document.getElementById('q-text').innerText = currentQuestion.q;
+            document.getElementById('q-feedback').innerText = '';
+
+            const imgWrap = document.getElementById('q-img-wrapper');
+            const imgEl = document.getElementById('q-img-el');
+            if (currentQuestion.imgData) {
+                imgEl.src = currentQuestion.imgData;
+                imgWrap.classList.remove('hidden');
+            } else {
+                imgEl.src = '';
+                imgWrap.classList.add('hidden');
+            }
+
+            spawnMolesWave();
+        }
+
+        function normalizeQuestionItem(raw) {
+            const cleanAns = stripOptionPrefix(raw.a);
+            const cleanDist = ensureUniqueDistractors(cleanAns, raw.distractors || ['B', 'C', 'D']);
+            return {
+                topic: raw.subject || raw.topic || '自訂題庫',
+                q: raw.q || '請看圖選出正確答案：',
+                a: cleanAns,
+                distractors: cleanDist,
+                imgData: raw.imgData || null
+            };
+        }
+
+        function skipQuestion() {
+            if (!isPlaying) return;
+            if (selectedPlayMode === 'timed') {
+                timeLeft = Math.max(0, timeLeft - 3);
+                timePenaltyTotal += 3;
+                document.getElementById('timer-display').innerText = timeLeft;
+                document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-amber-800 min-h-[20px] mt-1';
+                document.getElementById('q-feedback').innerText = '⏭️ 換一題（扣除 3 秒）！';
+                if (timeLeft <= 0) {
+                    endGame(false);
+                    return;
+                }
+            } else {
+                // 練習模式下換題會把該題排回佇列尾端
+                if (currentQuestion) practiceQueue.push(currentQuestion);
+            }
+            nextQuestion();
+        }
+
+        // 紀錄每個地洞目前的地鼠狀態
+        let activeHolesState = [null, null, null, null, null, null];
+
+        function spawnMolesWave() {
+            clearTimeout(moleSpawnTimeout);
+            if (!isPlaying || !currentQuestion) return;
+
+            for (let i = 0; i < 6; i++) {
+                activeHolesState[i] = null;
+                const moleEl = document.getElementById(`mole-${i}`);
+                if (moleEl) moleEl.classList.remove('up', 'bonked');
+            }
+
+            setTimeout(() => {
+                if (!isPlaying || !currentQuestion) return;
+
+                const holeIndices = shuffleArray([0, 1, 2, 3, 4, 5]);
+                const options = [
+                    { text: currentQuestion.a, isCorrect: true, type: 'answer' },
+                    ...currentQuestion.distractors.slice(0, 3).map(d => ({ text: d, isCorrect: false, type: 'answer' }))
+                ];
+
+                for (let i = 0; i < 4; i++) {
+                    const hIdx = holeIndices[i];
+                    const opt = options[i];
+                    activeHolesState[hIdx] = opt;
+                    document.getElementById(`mole-svg-${hIdx}`).innerHTML = renderMoleWithSignSVG(opt.text, 'answer');
+                    document.getElementById(`mole-${hIdx}`).classList.add('up');
+                }
+
+                // 隨機機率在剩餘第 5 個洞鑽出道具地鼠
+                if (Math.random() < 0.35) {
+                    const bonusHole = holeIndices[4];
+                    const isClock = (selectedPlayMode === 'timed' && Math.random() < 0.55);
+                    const itemOpt = isClock
+                        ? { text: '⏳ +10秒', isCorrect: false, type: 'clock' }
+                        : { text: '💣 炸彈勿敲', isCorrect: false, type: 'bomb' };
+                    activeHolesState[bonusHole] = itemOpt;
+                    document.getElementById(`mole-svg-${bonusHole}`).innerHTML = renderMoleWithSignSVG(itemOpt.text, itemOpt.type);
+                    document.getElementById(`mole-${bonusHole}`).classList.add('up');
+                }
+
+                const speedVal = document.getElementById('speed-select').value;
+                let stayMs = 3500;
+                if (speedVal === 'slow') stayMs = 4500;
+                else if (speedVal === 'fast') stayMs = 2500;
+                if (isFever) stayMs = Math.max(1800, stayMs * 0.82);
+
+                moleSpawnTimeout = setTimeout(() => {
+                    if (isPlaying) spawnMolesWave();
+                }, stayMs);
+            }, 220);
+        }
+
+        function whackMole(holeIdx) {
+            if (!isPlaying) return;
+            const state = activeHolesState[holeIdx];
+            if (!state) return;
+            activeHolesState[holeIdx] = null;
+
+            const moleEl = document.getElementById(`mole-${holeIdx}`);
+            const hammerLayer = document.getElementById(`hammer-layer-${holeIdx}`);
+            const boardEl = document.getElementById('question-board');
+
+            hammerLayer.innerHTML = getHammerStrikeSVG();
+            setTimeout(() => { hammerLayer.innerHTML = ''; }, 430);
+            moleEl.classList.remove('up');
+            moleEl.classList.add('bonked');
+
+            boardEl.classList.remove('shake-active');
+            void boardEl.offsetWidth;
+            boardEl.classList.add('shake-active');
+
+            const rect = moleEl.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            if (state.type === 'clock') {
+                playTone('clock');
+                timeLeft += 10;
+                timeBonusTotal += 10;
+                document.getElementById('timer-display').innerText = timeLeft;
+                document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-sky-700 min-h-[20px] mt-1';
+                document.getElementById('q-feedback').innerText = '⏳ 敲中時鐘地鼠！獎勵時間 +10 秒！';
+                spawnConfetti(centerX, centerY, '#38bdf8');
+                return;
+            }
+
+            if (state.type === 'bomb') {
+                playTone('bomb');
+                score = Math.max(0, score - 15);
+                combo = 0;
+                deactivateFever();
+                if (selectedPlayMode === 'timed') {
+                    timeLeft = Math.max(0, timeLeft - 5);
+                    timePenaltyTotal += 5;
+                    document.getElementById('timer-display').innerText = timeLeft;
+                }
+                updateScoreAndComboUI();
+                document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-rose-600 min-h-[20px] mt-1';
+                document.getElementById('q-feedback').innerText = selectedPlayMode === 'timed'
+                    ? '💥 誤敲炸彈！扣 15 分、扣 5 秒且中斷 Combo！'
+                    : '💥 誤敲炸彈！扣 15 分且中斷 Combo！';
+                spawnConfetti(centerX, centerY, '#ef4444');
+                if (selectedPlayMode === 'timed' && timeLeft <= 0) endGame(false);
+                return;
+            }
+
+            // 一般答案地鼠判定
+            if (state.isCorrect) {
+                playTone('correct');
+                correctCount++;
+                combo++;
+                if (combo >= 5 && !isFever) {
+                    activateFever();
+                }
+                const pts = (10 + Math.min(combo * 2, 10)) * (isFever ? 2 : 1);
+                score += pts;
+                updateScoreAndComboUI();
+                spawnConfetti(centerX, centerY, '#facc15');
+
+                document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-emerald-700 min-h-[20px] mt-1';
+                document.getElementById('q-feedback').innerText = `✅ 答對了！ +${pts} 分！`;
+                clearTimeout(moleSpawnTimeout);
+                setTimeout(() => nextQuestion(), 380);
+            } else {
+                playTone('wrong');
+                wrongCount++;
+                combo = 0;
+                score = Math.max(0, score - 5);
+                deactivateFever();
+                updateScoreAndComboUI();
+
+                // 記錄到錯題複習本（保留第一次答錯紀錄）
+                if (currentQuestion && !wrongQuestionsLog.some(w => w.q === currentQuestion.q)) {
+                    wrongQuestionsLog.push({
+                        q: currentQuestion.q,
+                        correct: currentQuestion.a,
+                        wrong: state.text
+                    });
+                }
+
+                // 錯題再練習機制：
+                if (currentQuestion && !currentQuestion._hasFailedThisTurn) {
+                    currentQuestion._hasFailedThisTurn = true;
+                    const cloneQ = {
+                        topic: currentQuestion.topic.replace(/^🔄 錯題重考：/, ''),
+                        q: currentQuestion.q,
+                        a: currentQuestion.a,
+                        distractors: shuffleArray(currentQuestion.distractors),
+                        imgData: currentQuestion.imgData
+                    };
+                    if (selectedPlayMode === 'timed') {
+                        timedRetryQueue.push(cloneQ);
+                    } else {
+                        practiceQueue.push(cloneQ);
+                        practiceTotalCount++;
+                    }
+                }
+
+                document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-rose-600 min-h-[20px] mt-1';
+                document.getElementById('q-feedback').innerText = `⚠️ 敲錯囉！「${state.text}」不是正確答案，此題稍後將再次出現！`;
+            }
+        }
+
+        function updateScoreAndComboUI() {
+            document.getElementById('score-display').innerText = score;
+            const badge = document.getElementById('combo-badge');
+            const countEl = document.getElementById('combo-count');
+            if (combo >= 2) {
+                countEl.innerText = combo;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function activateFever() {
+            isFever = true;
+            document.getElementById('game-stage').classList.add('fever-active');
+            showToast('🔥 5 COMBO 達成！進入 10 秒狂熱模式（得分雙倍）！');
+            clearTimeout(feverTimeout);
+            feverTimeout = setTimeout(() => deactivateFever(), 10000);
+        }
+
+        function deactivateFever() {
+            isFever = false;
+            clearTimeout(feverTimeout);
+            document.getElementById('game-stage').classList.remove('fever-active');
+        }
+
+        function endGame(completedPractice = false) {
+            isPlaying = false;
+            clearInterval(gameTimerInterval);
+            clearTimeout(moleSpawnTimeout);
+            deactivateFever();
+
+            lastTimeSpent = Math.max(1, Math.round((Date.now() - gameStartTime) / 1000));
+            const isNewRecord = setPersonalBest(selectedGrade, score);
+            const bestScore = getPersonalBest(selectedGrade);
+
+            document.getElementById('gameover-title').innerText = completedPractice
+                ? '🎊 題庫練習完成！'
+                : '⏰ 挑戰時間到！';
+            document.getElementById('gameover-subtitle').innerText = `${GRADE_NAMES[selectedGrade]} ｜ ${selectedPlayMode === 'practice' ? '練習所有題庫模式' : '90秒限時挑戰'}`;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-correct').innerText = correctCount;
+            document.getElementById('final-wrong').innerText = wrongCount;
+            document.getElementById('final-time').innerText = `${lastTimeSpent}秒`;
+            document.getElementById('final-time-detail').innerText = selectedPlayMode === 'timed'
+                ? `加時+${timeBonusTotal}s / 扣時-${timePenaltyTotal}s`
+                : '不限時完整練習';
+            document.getElementById('final-best').innerText = bestScore;
+
+            const banner = document.getElementById('new-record-banner');
+            if (isNewRecord && score > 0) banner.classList.remove('hidden');
+            else banner.classList.add('hidden');
+
+            // 渲染錯題本
+            document.getElementById('wrong-count-label').innerText = wrongQuestionsLog.length;
+            const wrongBox = document.getElementById('wrong-list-box');
+            const dlBtn = document.getElementById('btn-download-wrong');
+            if (wrongQuestionsLog.length === 0) {
+                wrongBox.innerHTML = '<p class="text-emerald-800 font-bold text-center py-3">✨ 太強了！本局沒有任何答錯的題目！</p>';
+                dlBtn.classList.add('hidden');
+            } else {
+                dlBtn.classList.remove('hidden');
+                wrongBox.innerHTML = wrongQuestionsLog.map((item, idx) => `
+                    <div class="bg-white p-2 rounded-xl border border-amber-400">
+                        <div class="font-black text-slate-900">${idx + 1}. ${escapeSvgText(item.q)}</div>
+                        <div class="mt-0.5 flex flex-wrap gap-3">
+                            <span class="text-emerald-700 font-black">✅ 正解：${escapeSvgText(item.correct)}</span>
+                            <span class="text-rose-600 font-bold">❌ 誤敲：${escapeSvgText(item.wrong)}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // 重置成績送出按鈕狀態
+            const submitBtn = document.getElementById('btn-submit-score');
+            submitBtn.disabled = false;
+            submitBtn.innerText = '🚀 送出成績';
+            document.getElementById('submit-status-msg').classList.add('hidden');
+
+            const modal = document.getElementById('gameover-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            updateMenuBestBadges();
+        }
+
+        function backToMenu() {
+            isPlaying = false;
+            clearInterval(gameTimerInterval);
+            clearTimeout(moleSpawnTimeout);
+            deactivateFever();
+
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('gameover-modal').classList.remove('flex');
+            document.getElementById('play-screen').classList.add('hidden');
+            document.getElementById('play-screen').classList.remove('flex');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            updateSkyTheme(90);
+            updateMenuBestBadges();
+        }
+
+        function downloadWrongQuestionsTxt() {
+            if (wrongQuestionsLog.length === 0) return;
+            const lines = [
+                `=== 數學與多學科打地鼠大挑戰 - 專屬錯題複習本 ===`,
+                `年級範圍：${GRADE_NAMES[selectedGrade]}`,
+                `本次得分：${score} 分 ｜ 答對：${correctCount} 題 ｜ 答錯：${wrongCount} 題`,
+                `----------------------------------------`
+            ];
+            wrongQuestionsLog.forEach((item, idx) => {
+                lines.push(`第 ${idx + 1} 題：${item.q}`);
+                lines.push(`  ✅ 正確答案：${item.correct}`);
+                lines.push(`  ❌ 當時誤敲：${item.wrong}`);
+                lines.push('');
+            });
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `錯題複習本_${GRADE_SHORT[selectedGrade]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // =========================================================================
+        // 7. 粒子爆破紙花特效 (Canvas Confetti)
+        // =========================================================================
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function spawnConfetti(x, y, baseColor) {
+            const colors = [baseColor, '#facc15', '#4ade80', '#38bdf8', '#f472b6', '#fb923c'];
+            for (let i = 0; i < 24; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 3 + Math.random() * 6;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2,
+                    size: 5 + Math.random() * 5,
+                    color: colors[i % colors.length],
+                    alpha: 1
+                });
+            }
+            if (particles.length <= 24) requestAnimationFrame(updateParticles);
+        }
+
+        function updateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.25;
+                p.alpha -= 0.025;
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+            particles = particles.filter(p => p.alpha > 0);
+            if (particles.length > 0) requestAnimationFrame(updateParticles);
+        }
+
+        // =========================================================================
+        // 8. 雲端排行榜 (支援限時挑戰與練習模式分離排名)
+        // =========================================================================
+        function populateLeaderboardGradeSelect() {
+            const sel = document.getElementById('leaderboard-grade-select');
+            sel.innerHTML = '';
+            for (let g = 1; g <= 9; g++) {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.innerText = GRADE_SHORT[g];
+                if (g === selectedGrade) opt.selected = true;
+                sel.appendChild(opt);
+            }
+        }
+
+        function switchLeaderboardMode(mode) {
+            leaderboardViewMode = mode;
+            const tabTimed = document.getElementById('lb-tab-timed');
+            const tabPractice = document.getElementById('lb-tab-practice');
+            if (mode === 'timed') {
+                tabTimed.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm bg-amber-800 text-white shadow';
+                tabPractice.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm text-amber-900 hover:bg-amber-300/60';
+            } else {
+                tabPractice.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm bg-emerald-700 text-white shadow';
+                tabTimed.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm text-amber-900 hover:bg-amber-300/60';
+            }
+            renderLeaderboardList();
+        }
+
+        async function preloadCloudScores() {
+            try {
+                const res = await fetch(`${GAS_URL}?action=getLeaderboard`);
+                const json = await res.json();
+                if (json && json.status === 'success' && Array.isArray(json.data)) {
+                    cloudScoresCache = json.data;
+                    updateMenuBestBadges();
+                }
+            } catch (e) {
+                const badge = document.getElementById('cloud-best-badge');
+                if (badge) badge.innerText = '🏆 雲端連線待命';
+            }
+        }
+
+        function openLeaderboardModal() {
+            document.getElementById('leaderboard-grade-select').value = selectedGrade;
+            switchLeaderboardMode(selectedPlayMode);
+            const modal = document.getElementById('leaderboard-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            fetchLeaderboardFromCloud(false);
+        }
+
+        function closeLeaderboardModal() {
+            const modal = document.getElementById('leaderboard-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function fetchLeaderboardFromCloud(forceRefresh = false) {
+            const container = document.getElementById('leaderboard-list-container');
+            if (forceRefresh || cloudScoresCache.length === 0) {
+                container.innerHTML = '<p class="text-center text-amber-900 font-bold py-8">⏳ 正在從 Google 試算表同步最新英雄榜...</p>';
+                await preloadCloudScores();
+            }
+            renderLeaderboardList();
+        }
+
+        function renderLeaderboardList() {
+            const container = document.getElementById('leaderboard-list-container');
+            const g = Number(document.getElementById('leaderboard-grade-select').value);
+
+            const filtered = cloudScoresCache
+                .filter(item => Number(item.grade) === g && (item.playMode || 'timed').toLowerCase() === leaderboardViewMode)
+                .sort((a, b) => {
+                    if (leaderboardViewMode === 'practice') {
+                        // 練習模式優先比答對題數，答對數相同比耗時短，最後比總分
+                        const ca = Number(a.correctCount || 0), cb = Number(b.correctCount || 0);
+                        if (cb !== ca) return cb - ca;
+                        const ta = Number(a.timeSpent || 9999), tb = Number(b.timeSpent || 9999);
+                        if (ta !== tb) return ta - tb;
+                    }
+                    return Number(b.score) - Number(a.score);
+                })
+                .slice(0, 30);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-center text-amber-800 font-bold py-10">🌱 目前「${GRADE_SHORT[g]}（${leaderboardViewMode === 'timed' ? '限時挑戰' : '練習所有題庫'}）」尚無紀錄，快來搶下第一名吧！</p>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map((row, idx) => {
+                const rank = idx + 1;
+                let cardStyle = 'bg-white border-2 border-amber-300';
+                let rankIcon = `<span class="w-7 text-center font-black text-amber-900">${rank}</span>`;
+                let titleBadge = '';
+
+                if (rank === 1) {
+                    cardStyle = 'rank-1-card';
+                    rankIcon = '<span class="text-2xl">👑</span>';
+                    titleBadge = '<span class="bg-amber-700 text-white text-[10px] font-black px-2 py-0.5 rounded-full">冠軍霸主</span>';
+                } else if (rank === 2) {
+                    cardStyle = 'rank-2-card';
+                    rankIcon = '<span class="text-2xl">🥈</span>';
+                    titleBadge = '<span class="bg-slate-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">亞軍</span>';
+                } else if (rank === 3) {
+                    cardStyle = 'rank-3-card';
+                    rankIcon = '<span class="text-2xl">🥉</span>';
+                    titleBadge = '<span class="bg-orange-700 text-white text-[10px] font-black px-2 py-0.5 rounded-full">季軍</span>';
+                }
+
+                const cCnt = Number(row.correctCount || 0);
+                const wCnt = Number(row.wrongCount || 0);
+                const tSpent = Number(row.timeSpent || 0);
+                const tBonus = Number(row.timeBonus || 0);
+                const tPen = Number(row.timePenalty || 0);
+                const detailSub = (cCnt > 0 || wCnt > 0 || tSpent > 0)
+                    ? `✅${cCnt}題 ｜ ❌${wCnt}題 ｜ ⏱️${tSpent}秒${leaderboardViewMode === 'timed' ? ` (+${tBonus}s/-${tPen}s)` : ''}`
+                    : '經典紀錄';
+
+                return `
+                    <div class="${cardStyle} rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5">
+                            ${rankIcon}
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-black text-slate-900 text-sm md:text-base">${escapeSvgText(row.name)}</span>
+                                    ${titleBadge}
+                                </div>
+                                <div class="text-[11px] font-bold text-amber-900/80">${detailSub}</div>
+                            </div>
+                        </div>
+                        <div class="font-black text-amber-950 text-base md:text-lg shrink-0">
+                            ${Number(row.score)} <span class="text-xs">分</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function submitScoreToCloud() {
+            const nameInput = document.getElementById('player-name-input');
+            const name = nameInput.value.trim();
+            if (!name) {
+                showToast('⚠️ 請先輸入您的姓名或座號！', true);
+                nameInput.focus();
+                return;
+            }
+            saveCurrentSettings();
+
+            const btn = document.getElementById('btn-submit-score');
+            const statusMsg = document.getElementById('submit-status-msg');
+            btn.disabled = true;
+            btn.innerText = '⏳ 傳送中...';
+
+            const payload = {
+                action: 'addScore',
+                name: name,
+                grade: selectedGrade,
+                score: score,
+                playMode: selectedPlayMode,
+                correctCount: correctCount,
+                wrongCount: wrongCount,
+                timeSpent: lastTimeSpent,
+                timeBonus: timeBonusTotal,
+                timePenalty: timePenaltyTotal
+            };
+
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+
+                cloudScoresCache.push({
+                    timestamp: new Date().toISOString(),
+                    ...payload
+                });
+                updateMenuBestBadges();
+
+                btn.innerText = '✅ 已登錄';
+                statusMsg.innerText = '🎉 成績與詳細戰報已成功寫入雲端試算表排行榜！';
+                statusMsg.classList.remove('hidden');
+                showToast('🏆 成績已成功登錄至排行榜！');
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerText = '🚀 重試送出';
+                showToast('⚠️ 傳送失敗，請檢查網路連線後重試！', true);
+            }
+        }
+
+        // =========================================================================
+        // 9. 音效與跨平台全螢幕控制
+        // =========================================================================
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('btn-sound').innerText = soundEnabled ? '🔊 音效: 開' : '🔇 音效: 關';
+        }
+
+        function toggleFullscreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+            const isFs = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+            if (!isFs) {
+                const requestFs = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+                if (requestFs) {
+                    requestFs.call(docEl).catch(() => {
+                        showToast('💡 提示：目前嵌入框架限制全螢幕，請在新分頁開啟網頁即可滿版遊玩！', true);
+                    });
+                } else {
+                    showToast('💡 您的裝置（如 iPhone Safari）不支援按鈕全螢幕，可將手機橫放遊玩！', true);
+                }
+            } else {
+                const exitFs = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+                if (exitFs) exitFs.call(doc);
+            }
+        }
+
+        document.addEventListener('fullscreenchange', updateFsButtonLabel);
+        document.addEventListener('webkitfullscreenchange', updateFsButtonLabel);
+        function updateFsButtonLabel() {
+            const doc = window.document;
+            const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+            const btn = document.getElementById('btn-fullscreen');
+            if (btn) btn.innerText = isFs ? '🗗 退出全螢幕' : '⛶ 全螢幕';
+        }
+
+        // =========================================================================
+        // 10. 管理者題庫中心（預設空白檔名自動帶入 + 250 題 100% 完整解析引擎）
+        // =========================================================================
+        function openAdminModal() {
+            const modal = document.getElementById('admin-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (adminUnlocked) {
+                document.getElementById('admin-lock-panel').classList.add('hidden');
+                document.getElementById('admin-content-panel').classList.remove('hidden');
+            }
+        }
+
+        function closeAdminModal() {
+            const modal = document.getElementById('admin-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function unlockAdminPanel() {
+            const val = document.getElementById('admin-pwd-input').value.trim();
+            if (val === ADMIN_PASSWORD) {
+                adminUnlocked = true;
+                document.getElementById('admin-pwd-error').classList.add('hidden');
+                document.getElementById('admin-lock-panel').classList.add('hidden');
+                document.getElementById('admin-content-panel').classList.remove('hidden');
+                showToast('🔓 管理者驗證成功！歡迎進入題庫管理中心。');
+            } else {
+                document.getElementById('admin-pwd-error').classList.remove('hidden');
+            }
+        }
+
+        function switchAdminTab(tab) {
+            const tabs = ['pdf', 'txt', 'img', 'manual'];
+            tabs.forEach(t => {
+                document.getElementById(`admin-tab-${t}`).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById(`tab-btn-${t}`);
+                btn.className = (t === tab)
+                    ? 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm bg-emerald-700 text-white shadow'
+                    : 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm bg-amber-200 text-amber-900 hover:bg-amber-300';
+            });
+        }
+
+        function extractCleanSubjectNameFromFile(filename) {
+            return String(filename || '')
+                .replace(/\.(pdf|txt|csv|png|jpe?g|webp|json)$/i, '')
+                .replace(/^\d+@/, '')
+                .replace(/\s*\(\d+\)$/, '')
+                .trim();
+        }
+
+        function cleanSpacedCjkText(str) {
+            return String(str || '')
+                .replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2')
+                .replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        async function handlePdfFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const subjInput = document.getElementById('admin-subject-input');
+            if (subjInput) {
+                subjInput.value = extractCleanSubjectNameFromFile(file.name);
+            }
+
+            const statusEl = document.getElementById('pdf-parse-status');
+            const previewBox = document.getElementById('pdf-preview-box');
+            statusEl.innerText = '⏳ 正在讀取並智慧辨識 PDF 題庫與圖形中，請稍候...';
+            previewBox.classList.add('hidden');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const numPages = pdf.numPages;
+
+                let fullTextPages = [];
+                let pageCropMap = {};
+
+                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                    statusEl.innerText = `⏳ 正在解析第 ${pageNum} / ${numPages} 頁...`;
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 1.0 });
+                    const textContent = await page.getTextContent();
+
+                    const items = textContent.items.map(item => ({
+                        str: item.str,
+                        x: item.transform[4],
+                        y: item.transform[5]
+                    }));
+
+                    items.sort((a, b) => {
+                        if (Math.abs(b.y - a.y) > 4.5) return b.y - a.y;
+                        return a.x - b.x;
+                    });
+
+                    const lines = [];
+                    items.forEach(it => {
+                        if (!it.str.trim()) return;
+                        const last = lines[lines.length - 1];
+                        if (last && Math.abs(last.y - it.y) <= 4.5) {
+                            last.text += ' ' + it.str;
+                            last.items.push(it);
+                        } else {
+                            lines.push({ y: it.y, text: it.str, items: [it] });
+                        }
+                    });
+
+                    const filteredLines = lines.filter(ln => {
+                        const t = ln.text.trim();
+                        if (/^\d{1,2}$/.test(t) && ln.y < 65) return false;
+                        if (/國民中學技藝競賽|學科題庫/.test(t) && !/\(\s*[1-4]\s*\)/.test(t)) return false;
+                        return true;
+                    });
+
+                    const pageStr = filteredLines.map(ln => ln.text).join('\n');
+                    fullTextPages.push(pageStr);
+
+                    const qPosList = [];
+                    filteredLines.forEach(ln => {
+                        const m = ln.text.match(/(?:^|\s)(\d{1,3})\s*[.、．]/);
+                        if (m) {
+                            const qNum = parseInt(m[1], 10);
+                            if (qNum >= 1 && qNum <= 300 && !qPosList.some(x => x.qNum === qNum)) {
+                                qPosList.push({ qNum, y: ln.y, text: ln.text });
+                            }
+                        }
+                    });
+
+                    const needCropOnPage = qPosList.filter((qp, idx) => {
+                        const nextY = idx + 1 < qPosList.length ? qPosList[idx + 1].y : 45;
+                        const spanLines = filteredLines.filter(l => l.y <= qp.y + 8 && l.y >= nextY);
+                        const combined = spanLines.map(l => l.text).join(' ');
+                        const hasKeyword = /如圖|下圖|附圖|右圖|圖中|符號|右列|程式片段|如下所示/.test(combined);
+                        const yGap = qp.y - nextY;
+                        return hasKeyword || yGap > 105;
+                    });
+
+                    if (needCropOnPage.length > 0) {
+                        const scale = 1.6;
+                        const renderVp = page.getViewport({ scale });
+                        const offCanvas = document.createElement('canvas');
+                        offCanvas.width = renderVp.width;
+                        offCanvas.height = renderVp.height;
+                        const offCtx = offCanvas.getContext('2d');
+                        await page.render({ canvasContext: offCtx, viewport: renderVp }).promise;
+
+                        needCropOnPage.forEach(qp => {
+                            const idx = qPosList.findIndex(x => x.qNum === qp.qNum);
+                            const nextY = idx + 1 < qPosList.length ? qPosList[idx + 1].y : 48;
+                            const topPdfY = Math.min(viewport.height - 10, qp.y + 18);
+                            const botPdfY = Math.max(35, nextY + 6);
+
+                            const cropX = Math.floor(renderVp.width * 0.14);
+                            const cropW = Math.floor(renderVp.width * 0.83);
+                            const cropY = Math.max(0, Math.floor((viewport.height - topPdfY) * scale));
+                            const cropH = Math.max(40, Math.floor((topPdfY - botPdfY) * scale));
+
+                            if (cropH > 45 && cropY + cropH <= renderVp.height) {
+                                const subCanvas = document.createElement('canvas');
+                                subCanvas.width = cropW;
+                                subCanvas.height = cropH;
+                                subCanvas.getContext('2d').drawImage(
+                                    offCanvas,
+                                    cropX, cropY, cropW, cropH,
+                                    0, 0, cropW, cropH
+                                );
+                                pageCropMap[qp.qNum] = subCanvas.toDataURL('image/jpeg', 0.78);
+                            }
+                        });
+                    }
+                }
+
+                const combinedFullText = fullTextPages.join('\n');
+                const parsedList = parseExamBankFullText(combinedFullText, pageCropMap);
+                parsedPdfQuestionsBuffer = parsedList;
+
+                statusEl.innerText = `✅ 解析完成！共讀取 ${numPages} 頁，成功辨識出 ${parsedList.length} 道選擇題！`;
+                renderPdfPreviewBox(parsedList, numPages);
+            } catch (err) {
+                console.error(err);
+                statusEl.innerText = '❌ PDF 解析發生錯誤，請確認檔案未加密或改用文字/圖片上傳。';
+            }
+        }
+
+        function parseExamBankFullText(rawText, pageCropMap = {}) {
+            let text = String(rawText || '')
+                .replace(/（/g, '(')
+                .replace(/）/g, ')')
+                .replace(/【/g, '(')
+                .replace(/】/g, ')');
+
+            const tokenRegex = /(?:\(\s*([1-4A-Da-d])\s*\)\s*)?(?:^|[\s\n。？?！!）)])(\d{1,3})\s*[.、．]\s*(?=[^\d]|$)/g;
+            let matches = [];
+            let m;
+            while ((m = tokenRegex.exec(text)) !== null) {
+                const ansRaw = m[1] ? m[1].toUpperCase() : null;
+                const qNum = parseInt(m[2], 10);
+                const numPos = m.index + m[0].lastIndexOf(m[2]);
+                matches.push({
+                    fullIndex: m.index,
+                    numIndex: numPos,
+                    endIndex: tokenRegex.lastIndex,
+                    ans: ansRaw,
+                    qNum: qNum
+                });
+            }
+
+            const validAnchors = [];
+            let expectedNum = 1;
+
+            for (let i = 0; i < matches.length; i++) {
+                const cur = matches[i];
+                if (cur.qNum === expectedNum) {
+                    validAnchors.push(cur);
+                    expectedNum++;
+                } else if (cur.qNum > expectedNum && cur.qNum <= expectedNum + 5) {
+                    const hasExactLater = matches.slice(i + 1, i + 8).some(x => x.qNum === expectedNum);
+                    if (!hasExactLater) {
+                        validAnchors.push(cur);
+                        expectedNum = cur.qNum + 1;
+                    }
+                }
+            }
+
+            const results = [];
+            const letterMap = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, '1': 1, '2': 2, '3': 3, '4': 4 };
+
+            for (let i = 0; i < validAnchors.length; i++) {
+                const anchor = validAnchors[i];
+                const nextAnchor = i + 1 < validAnchors.length ? validAnchors[i + 1] : null;
+                const sliceStart = anchor.endIndex;
+                const sliceEnd = nextAnchor ? nextAnchor.fullIndex : text.length;
+                let block = text.slice(sliceStart, sliceEnd).trim();
+
+                let ansCode = anchor.ans;
+                if (!ansCode) {
+                    const prevWindow = text.slice(Math.max(0, anchor.fullIndex - 40), anchor.numIndex);
+                    const pm = prevWindow.match(/\(\s*([1-4A-Da-d])\s*\)/g);
+                    if (pm && pm.length > 0) {
+                        const lastToken = pm[pm.length - 1].match(/[1-4A-Da-d]/)[0].toUpperCase();
+                        ansCode = lastToken;
+                    }
+                }
+                if (!ansCode) {
+                    const trailMatch = block.match(/^\(\s*([1-4A-Da-d])\s*\)/);
+                    if (trailMatch) {
+                        ansCode = trailMatch[1].toUpperCase();
+                        block = block.slice(trailMatch[0].length).trim();
+                    }
+                }
+
+                block = block.replace(/\n\s*\(\s*[1-4A-Da-d]\s*\)\s*$/, '').trim();
+
+                const parsedOpts = extractFourOptionsFromBlock(block);
+                const qStem = cleanSpacedCjkText(parsedOpts.stem);
+                const opts = parsedOpts.options.map(o => cleanSpacedCjkText(stripOptionPrefix(o)));
+
+                const ansIdx = (letterMap[ansCode] || 1) - 1;
+                const correctText = opts[ansIdx] || opts[0] || '選項(1)';
+                const rawDistractors = opts.filter((_, idx) => idx !== ansIdx);
+
+                results.push({
+                    id: `pdf_${Date.now()}_${anchor.qNum}`,
+                    qNum: anchor.qNum,
+                    q: `${anchor.qNum}. ${qStem}`,
+                    a: correctText,
+                    distractors: ensureUniqueDistractors(correctText, rawDistractors),
+                    imgData: pageCropMap[anchor.qNum] || null
+                });
+            }
+
+            return results;
+        }
+
+        function extractFourOptionsFromBlock(block) {
+            let cleanBlock = String(block || '').replace(/\r/g, ' ').trim();
+
+            const pos4 = findLastOptionMarker(cleanBlock, 4, cleanBlock.length);
+            const pos3 = pos4 !== -1 ? findLastOptionMarker(cleanBlock, 3, pos4) : -1;
+            const pos2 = pos3 !== -1 ? findLastOptionMarker(cleanBlock, 2, pos3) : -1;
+            let pos1 = pos2 !== -1 ? findLastOptionMarker(cleanBlock, 1, pos2) : -1;
+
+            if (pos1 === -1 && pos2 !== -1) {
+                const before2 = cleanBlock.slice(0, pos2);
+                const brokenParen = before2.lastIndexOf(')');
+                if (brokenParen !== -1 && brokenParen > before2.length * 0.35) {
+                    pos1 = brokenParen;
+                }
+            }
+
+            if (pos1 !== -1 && pos2 !== -1 && pos3 !== -1 && pos4 !== -1) {
+                const stem = cleanBlock.slice(0, pos1).replace(/[)）]\s*$/, '').trim();
+                const o1 = cleanBlock.slice(pos1, pos2).replace(/^\s*[\(（]?\s*[1A]\s*[\)）]\s*/, '').trim();
+                const o2 = cleanBlock.slice(pos2, pos3).replace(/^\s*[\(（]?\s*[2B]\s*[\)）]\s*/, '').trim();
+                const o3 = cleanBlock.slice(pos3, pos4).replace(/^\s*[\(（]?\s*[3C]\s*[\)）]\s*/, '').trim();
+                let o4 = cleanBlock.slice(pos4).replace(/^\s*[\(（]?\s*[4D]\s*[\)）]\s*/, '').trim();
+                o4 = o4.replace(/[。．.]+\s*$/, '').trim();
+                return {
+                    stem: stem || '請選出正確答案：',
+                    options: [o1 || '(1)', o2 || '(2)', o3 || '(3)', o4 || '(4)']
+                };
+            }
+
+            return {
+                stem: cleanBlock,
+                options: ['選項(1)', '選項(2)', '選項(3)', '選項(4)']
+            };
+        }
+
+        function findLastOptionMarker(str, num, beforeIndex) {
+            const sub = str.slice(0, beforeIndex);
+            const regex = new RegExp(`\\(\\s*${num}\\s*\\)`, 'g');
+            let lastIdx = -1;
+            let m;
+            while ((m = regex.exec(sub)) !== null) {
+                lastIdx = m.index;
+            }
+            return lastIdx;
+        }
+
+        function renderPdfPreviewBox(list, numPages) {
+            const box = document.getElementById('pdf-preview-box');
+            const titleEl = document.getElementById('pdf-preview-title');
+            const listEl = document.getElementById('pdf-preview-list');
+
+            titleEl.innerText = `🎉 智慧辨識成功：共 ${list.length} 題（來自 ${numPages} 頁 PDF）！`;
+            box.classList.remove('hidden');
+
+            const sample = list.length > 20
+                ? [...list.slice(0, 15), { isDivider: true, skipped: list.length - 20 }, ...list.slice(-5)]
+                : list;
+
+            listEl.innerHTML = sample.map(item => {
+                if (item.isDivider) {
+                    return `<div class="text-center py-2 bg-amber-100 rounded-xl font-black text-amber-800">・・・ 中間省略 ${item.skipped} 題（全部皆已完整辨識） ・・・</div>`;
+                }
+                return `
+                    <div class="bg-amber-50/70 border border-amber-300 rounded-xl p-2.5">
+                        <div class="font-black text-slate-900">${escapeSvgText(item.q)} ${item.imgData ? '<span class="text-indigo-600">[含自動切圖🖼️]</span>' : ''}</div>
+                        <div class="mt-1 flex flex-wrap items-center gap-2">
+                            <span class="bg-emerald-600 text-white px-2 py-0.5 rounded font-black">正解：${escapeSvgText(item.a)}</span>
+                            <span class="text-slate-600 font-bold">隨機打亂誘答：${item.distractors.map(d => escapeSvgText(d)).join(' ｜ ')}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function confirmImportParsedPdfQuestions() {
+            if (!parsedPdfQuestionsBuffer || parsedPdfQuestionsBuffer.length === 0) return;
+            const grade = parseInt(document.getElementById('admin-grade-select').value, 10);
+            const subject = document.getElementById('admin-subject-input').value.trim() || '自訂題庫';
+
+            const formatted = parsedPdfQuestionsBuffer.map(item => ({
+                id: item.id,
+                grade: grade,
+                subject: subject,
+                q: item.q,
+                a: item.a,
+                distractors: item.distractors,
+                imgData: item.imgData || null
+            }));
+
+            customQuestionsBank.push(...formatted);
+            saveLocalCustomBank();
+            updateCustomBankUI();
+            populateCustomSubjectsDropdown();
+
+            if (grade >= 1 && grade <= 9) {
+                selectedGrade = grade;
+                renderGradeButtons();
+            }
+            selectBankMode('custom');
+
+            document.getElementById('pdf-preview-box').classList.add('hidden');
+            showToast(`🎉 已成功匯入 ${formatted.length} 題至「${subject}」！正在自動同步至雲端...`);
+            syncQuestionsToCloud();
+        }
+
+        function handleTxtFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const subjInput = document.getElementById('admin-subject-input');
+            if (subjInput) {
+                subjInput.value = extractCleanSubjectNameFromFile(file.name);
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('bulk-text-input').value = e.target.result || '';
+                showToast('📄 文字檔讀取成功，請點擊下方「解析文字並加入題庫」！');
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function parseAndAddBulkText() {
+            const raw = document.getElementById('bulk-text-input').value.trim();
+            if (!raw) {
+                showToast('⚠️ 請先貼上題庫文字或上傳文字檔！', true);
+                return;
+            }
+            const grade = parseInt(document.getElementById('admin-grade-select').value, 10);
+            const subject = document.getElementById('admin-subject-input').value.trim() || '自訂題庫';
+
+            let added = [];
+            if (/\(\s*[1-4]\s*\)/.test(raw)) {
+                const parsed = parseExamBankFullText(raw, {});
+                added = parsed.map(item => ({
+                    id: item.id,
+                    grade,
+                    subject,
+                    q: item.q,
+                    a: item.a,
+                    distractors: item.distractors,
+                    imgData: null
+                }));
+            } else {
+                const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                lines.forEach((ln, idx) => {
+                    const parts = ln.split(/[,，\t]/).map(s => s.trim()).filter(Boolean);
+                    if (parts.length >= 2) {
+                        const qText = parts[0];
+                        const ans = stripOptionPrefix(parts[1]);
+                        const dist = ensureUniqueDistractors(ans, parts.slice(2, 5));
+                        added.push({
+                            id: `txt_${Date.now()}_${idx}`,
+                            grade,
+                            subject,
+                            q: qText,
+                            a: ans,
+                            distractors: dist,
+                            imgData: null
+                        });
+                    }
+                });
+            }
+
+            if (added.length === 0) {
+                showToast('⚠️ 無法辨識出有效題目，請檢查文字格式！', true);
+                return;
+            }
+
+            customQuestionsBank.push(...added);
+            saveLocalCustomBank();
+            updateCustomBankUI();
+            populateCustomSubjectsDropdown();
+            selectBankMode('custom');
+            document.getElementById('bulk-text-input').value = '';
+            showToast(`✅ 成功加入 ${added.length} 道題目至「${subject}」！`);
+            syncQuestionsToCloud();
+        }
+
+        function downloadSampleTxtTemplate() {
+            const sample = [
+                `(4) 1. 壓克力顏料具有豐富多樣的特質，為了表現肌理，不常使用的手法有(1)噴濺(2)刮擦(3)壓印(4)渲染。`,
+                `(1) 2. 壓克力顏料不適合在何者表面上使用？(1)奈米級玻璃(2)紙板(3)木板(4)塑膠。`,
+                `台灣最高的山峰是哪一座？,玉山,雪山,阿里山,合歡山`
+            ].join('\n');
+            const blob = new Blob([sample], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '題庫匯入範本.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function compressImageFileToDataUrl(file, maxW = 720, quality = 0.78) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (w > maxW) {
+                            h = Math.round((h * maxW) / w);
+                            w = maxW;
+                        }
+                        const c = document.createElement('canvas');
+                        c.width = w; c.height = h;
+                        c.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(c.toDataURL('image/jpeg', quality));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleImageFilesUpload(event) {
+            const files = Array.from(event.target.files || []);
+            if (files.length === 0) return;
+
+            const subjInput = document.getElementById('admin-subject-input');
+            if (subjInput && !subjInput.value.trim()) {
+                subjInput.value = extractCleanSubjectNameFromFile(files[0].name);
+            }
+
+            stagedImageItems = [];
+            for (let i = 0; i < files.length; i++) {
+                const dataUrl = await compressImageFileToDataUrl(files[i]);
+                stagedImageItems.push({
+                    title: extractCleanSubjectNameFromFile(files[i].name),
+                    imgData: dataUrl,
+                    ans: 'A'
+                });
+            }
+            renderStagedImages();
+        }
+
+        function renderStagedImages() {
+            const container = document.getElementById('staged-images-container');
+            const btn = document.getElementById('btn-confirm-imgs');
+            if (stagedImageItems.length === 0) {
+                container.innerHTML = '';
+                btn.classList.add('hidden');
+                return;
+            }
+            btn.classList.remove('hidden');
+            container.innerHTML = stagedImageItems.map((it, idx) => `
+                <div class="bg-white border border-amber-400 rounded-xl p-2 flex items-center justify-between gap-3">
+                    <img src="${it.imgData}" class="h-14 w-auto object-contain rounded border" />
+                    <input type="text" value="${escapeSvgText(it.title)}" onchange="stagedImageItems[${idx}].title=this.value" class="flex-1 border rounded px-2 py-1 text-xs font-bold" />
+                    <label class="text-xs font-black text-amber-950">正解：
+                        <select onchange="stagedImageItems[${idx}].ans=this.value" class="border-2 border-emerald-600 rounded px-2 py-1 font-black">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                        </select>
+                    </label>
+                </div>
+            `).join('');
+        }
+
+        function confirmStagedImagesToBank() {
+            if (stagedImageItems.length === 0) return;
+            const grade = parseInt(document.getElementById('admin-grade-select').value, 10);
+            const subject = document.getElementById('admin-subject-input').value.trim() || '圖片題庫';
+
+            stagedImageItems.forEach((it, idx) => {
+                const allOpts = ['A', 'B', 'C', 'D'];
+                customQuestionsBank.push({
+                    id: `img_${Date.now()}_${idx}`,
+                    grade,
+                    subject,
+                    q: it.title || '請根據附圖選出正確答案：',
+                    a: it.ans,
+                    distractors: allOpts.filter(x => x !== it.ans),
+                    imgData: it.imgData
+                });
+            });
+
+            stagedImageItems = [];
+            renderStagedImages();
+            saveLocalCustomBank();
+            updateCustomBankUI();
+            populateCustomSubjectsDropdown();
+            selectBankMode('custom');
+            showToast('✅ 圖片題已全部加入題庫！');
+            syncQuestionsToCloud();
+        }
+
+        function addManualQuestion() {
+            const q = document.getElementById('manual-q-input').value.trim();
+            const a = document.getElementById('manual-ans-input').value.trim();
+            const w1 = document.getElementById('manual-w1-input').value.trim();
+            const w2 = document.getElementById('manual-w2-input').value.trim();
+            const w3 = document.getElementById('manual-w3-input').value.trim();
+
+            if (!q || !a) {
+                showToast('⚠️ 請至少填寫「題目敘述」與「正確答案」！', true);
+                return;
+            }
+            const grade = parseInt(document.getElementById('admin-grade-select').value, 10);
+            const subject = document.getElementById('admin-subject-input').value.trim() || '自訂題庫';
+
+            customQuestionsBank.push({
+                id: `man_${Date.now()}`,
+                grade,
+                subject,
+                q,
+                a: stripOptionPrefix(a),
+                distractors: ensureUniqueDistractors(a, [w1, w2, w3]),
+                imgData: null
+            });
+
+            document.getElementById('manual-q-input').value = '';
+            document.getElementById('manual-ans-input').value = '';
+            document.getElementById('manual-w1-input').value = '';
+            document.getElementById('manual-w2-input').value = '';
+            document.getElementById('manual-w3-input').value = '';
+
+            saveLocalCustomBank();
+            updateCustomBankUI();
+            populateCustomSubjectsDropdown();
+            selectBankMode('custom');
+            showToast('✅ 已新增單題至題庫！');
+        }
+
+        // =========================================================================
+        // 11. 題庫清單管理、單題補圖 / 剪貼簿貼圖與雲端試算表雙向同步
+        // =========================================================================
+        function loadLocalCustomBank() {
+            try {
+                const keysToTry = [
+                    STORAGE_KEY_CUSTOM_BANK,
+                    'math_gophers_custom_bank_v7',
+                    'math_gophers_custom_bank_v6',
+                    'math_gophers_custom_bank_v5',
+                    'math_gophers_custom_bank_v4'
+                ];
+                for (const k of keysToTry) {
+                    const raw = localStorage.getItem(k);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            customQuestionsBank = parsed;
+                            localStorage.setItem(STORAGE_KEY_CUSTOM_BANK, JSON.stringify(customQuestionsBank));
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function saveLocalCustomBank() {
+            try {
+                localStorage.setItem(STORAGE_KEY_CUSTOM_BANK, JSON.stringify(customQuestionsBank));
+            } catch (e) {
+                showToast('⚠️ 瀏覽器本機儲存空間已滿（圖片較多），請點擊「☁️ 同步題庫至雲端試算表」或匯出備份！', true);
+            }
+        }
+
+        async function preloadCloudQuestions() {
+            try {
+                const res = await fetch(`${GAS_URL}?action=getQuestions`);
+                const json = await res.json();
+                if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+                    customQuestionsBank = json.data;
+                    saveLocalCustomBank();
+                    updateCustomBankUI();
+                    populateCustomSubjectsDropdown();
+                    updateScopeDescription();
+                }
+            } catch (e) {}
+        }
+
+        async function syncQuestionsToCloud() {
+            try {
+                const payloadQuestions = customQuestionsBank.map(q => ({
+                    id: q.id,
+                    grade: q.grade,
+                    subject: q.subject,
+                    q: q.q,
+                    a: q.a,
+                    distractors: q.distractors,
+                    imgData: (q.imgData && q.imgData.length < 46000) ? q.imgData : ''
+                }));
+
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'saveQuestions',
+                        questions: payloadQuestions
+                    })
+                });
+                const json = await res.json();
+                if (json && json.status === 'success') {
+                    showToast(`☁️ 雲端同步成功！已將 ${customQuestionsBank.length} 道題目寫入 Google 試算表！`);
+                } else {
+                    showToast('⚠️ 雲端同步未完成，題庫已安全保存在本機。', true);
+                }
+            } catch (err) {
+                showToast('⚠️ 雲端同步失敗（請確認 GAS 已建立新版本部署），題庫已保存在本機。', true);
+            }
+        }
+
+        function updateCustomBankUI() {
+            const totalEl = document.getElementById('custom-bank-total');
+            const menuCountEl = document.getElementById('menu-custom-count');
+            const listEl = document.getElementById('custom-bank-list');
+
+            if (totalEl) totalEl.innerText = customQuestionsBank.length;
+            if (menuCountEl) menuCountEl.innerText = customQuestionsBank.length;
+            if (!listEl) return;
+
+            if (customQuestionsBank.length === 0) {
+                listEl.innerHTML = '<p class="text-center text-amber-800 font-bold py-6">目前尚未新增任何自訂題目，請從上方上傳 PDF、文字或圖片題庫。</p>';
+                return;
+            }
+
+            const keyword = (document.getElementById('bank-search-input')?.value || '').trim().toLowerCase();
+            const onlyNeedImg = document.getElementById('filter-need-img')?.checked || false;
+
+            const filtered = customQuestionsBank.filter(item => {
+                if (keyword) {
+                    const hay = `${item.q} ${item.a} ${item.subject || ''}`.toLowerCase();
+                    if (!hay.includes(keyword)) return false;
+                }
+                if (onlyNeedImg) {
+                    if (!/如圖|下圖|附圖|右圖|圖中|符號|右列|程式/.test(item.q) && !item.imgData) return false;
+                }
+                return true;
+            });
+
+            listEl.innerHTML = filtered.map(item => `
+                <div onclick="setActivePasteQuestion('${item.id}')" class="bg-white border ${activePasteQuestionId === item.id ? 'border-indigo-600 ring-2 ring-indigo-300' : 'border-amber-300'} rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-amber-50/60">
+                    <div class="flex-1 min-w-[200px]">
+                        <span class="inline-block bg-amber-200 text-amber-950 font-black px-2 py-0.5 rounded text-[11px] mr-1.5">
+                            ${GRADE_SHORT[item.grade] || '跨年級'} ｜ ${escapeSvgText(item.subject || '自訂題庫')}
+                        </span>
+                        <span class="font-bold text-slate-900">${escapeSvgText(item.q)}</span>
+                        <span class="ml-2 text-emerald-700 font-black">正解：${escapeSvgText(item.a)}</span>
+                        ${item.imgData ? `<img src="${item.imgData}" class="inline-block h-7 w-auto object-contain ml-2 rounded border border-amber-400 align-middle" title="已附圖" />` : ''}
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <label class="px-2 py-1 rounded bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold text-[11px] cursor-pointer" onclick="event.stopPropagation()">
+                            🖼️ 補圖
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadSingleQuestionImage(event, '${item.id}')" />
+                        </label>
+                        <button onclick="event.stopPropagation(); promptPasteImageForQuestion('${item.id}')" class="px-2 py-1 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold text-[11px]">
+                            📋 貼圖
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteCustomQuestion('${item.id}')" class="px-2 py-1 rounded bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-[11px]">
+                            刪除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setActivePasteQuestion(qId) {
+            activePasteQuestionId = qId;
+            updateCustomBankUI();
+        }
+
+        function promptPasteImageForQuestion(qId) {
+            activePasteQuestionId = qId;
+            updateCustomBankUI();
+            showToast('📋 已鎖定此題！請直接按鍵盤 Ctrl + V 貼上剪貼簿中的截圖！');
+        }
+
+        async function handleGlobalPasteImage(event) {
+            if (!activePasteQuestionId) return;
+            const items = event.clipboardData?.items;
+            if (!items) return;
+            for (const it of items) {
+                if (it.type.indexOf('image') !== -1) {
+                    const file = it.getAsFile();
+                    if (file) {
+                        const dataUrl = await compressImageFileToDataUrl(file);
+                        const target = customQuestionsBank.find(q => q.id === activePasteQuestionId);
+                        if (target) {
+                            target.imgData = dataUrl;
+                            saveLocalCustomBank();
+                            updateCustomBankUI();
+                            showToast('🎉 截圖已成功貼入該題目！');
+                        }
+                    }
+                }
+            }
+        }
+
+        async function uploadSingleQuestionImage(event, qId) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const dataUrl = await compressImageFileToDataUrl(file);
+            const target = customQuestionsBank.find(q => q.id === qId);
+            if (target) {
+                target.imgData = dataUrl;
+                saveLocalCustomBank();
+                updateCustomBankUI();
+                showToast('🖼️ 圖片已成功掛載至該題！');
+            }
+        }
+
+        function deleteCustomQuestion(qId) {
+            customQuestionsBank = customQuestionsBank.filter(q => q.id !== qId);
+            saveLocalCustomBank();
+            updateCustomBankUI();
+            populateCustomSubjectsDropdown();
+            updateScopeDescription();
+        }
+
+        function clearAllCustomQuestions() {
+            customQuestionsBank = [];
+            saveLocalCustomBank();
+            updateCustomBankUI();
+            populateCustomSubjectsDropdown();
+            updateScopeDescription();
+            showToast('🗑️ 已清空所有自訂題庫！');
+        }
+
+        function exportCustomBankJson() {
+            if (customQuestionsBank.length === 0) {
+                showToast('⚠️ 目前題庫為空，無須匯出！', true);
+                return;
+            }
+            const blob = new Blob([JSON.stringify(customQuestionsBank, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `打地鼠自訂題庫備份_${customQuestionsBank.length}題.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importCustomBankJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const arr = JSON.parse(e.target.result);
+                    if (Array.isArray(arr)) {
+                        customQuestionsBank = arr;
+                        saveLocalCustomBank();
+                        updateCustomBankUI();
+                        populateCustomSubjectsDropdown();
+                        selectBankMode('custom');
+                        showToast(`📂 成功還原 ${arr.length} 道題目！`);
+                    }
+                } catch (err) {
+                    showToast('❌ 備份檔格式錯誤！', true);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+    </script>
+</body>
+</html>
