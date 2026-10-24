@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數學與多學科打地鼠大挑戰</title>
+    <title>數學與多學科打地鼠大挑戰 - 1024發佈版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 PDF.js 供瀏覽器端直接解析 PDF 題庫與自動切圖 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -158,13 +158,16 @@
         <!-- ================= 畫面 1：範圍與題庫選擇主選單 ================= -->
         <section id="menu-screen" class="relative z-20 my-auto w-full max-w-3xl bg-[#fef9c3] border-[6px] border-[#92400e] rounded-3xl shadow-[0_12px_0_#5b2106,0_20px_35px_rgba(0,0,0,0.4)] p-4 md:p-7">
             <div class="text-center mb-4">
-                <!-- 題庫來源切換器 -->
-                <div class="inline-flex flex-wrap justify-center gap-2 bg-amber-200/80 p-1.5 rounded-2xl border-2 border-amber-600 mb-2">
-                    <button id="mode-btn-builtin" onclick="selectBankMode('builtin')" class="px-4 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-amber-800 text-white shadow">
+                <!-- 題庫來源切換器 (三大獨立模式) -->
+                <div class="inline-flex flex-wrap justify-center gap-1.5 bg-amber-200/80 p-1.5 rounded-2xl border-2 border-amber-600 mb-2">
+                    <button id="mode-btn-builtin" onclick="selectBankMode('builtin')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-amber-800 text-white shadow">
                         🎯 108 課綱國小～國中數學題庫
                     </button>
-                    <button id="mode-btn-custom" onclick="selectBankMode('custom')" class="px-4 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60">
+                    <button id="mode-btn-custom" onclick="selectBankMode('custom')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60">
                         📂 教師自訂 / 技藝競賽題庫 (<span id="menu-custom-count">0</span>題)
+                    </button>
+                    <button id="mode-btn-wrongbook" onclick="selectBankMode('wrongbook')" class="px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-indigo-900 hover:bg-indigo-200/60">
+                        📝 我的錯題複習本 (<span id="menu-wrongbook-count">0</span>題)
                     </button>
                 </div>
 
@@ -172,6 +175,14 @@
                 <p class="text-xs md:text-sm text-amber-800 font-bold mt-1">
                     敲中「正確答案」得分！連續答對 5 題啟動 <span class="text-red-600 font-black">🔥 狂熱模式(分數雙倍)</span>，留意隨機出現的 <span class="text-sky-700 font-black">⏳加時地鼠</span> 與 <span class="text-purple-700 font-black">💣炸彈地鼠</span>！
                 </p>
+
+                <!-- 學生端直接匯入錯題複習本 (.txt) -->
+                <div class="mt-2.5 flex flex-wrap justify-center gap-2">
+                    <label class="cursor-pointer inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs px-4 py-1.5 rounded-full border-2 border-indigo-300 shadow transition active:scale-95">
+                        📂 學生端：匯入錯題複習本 (.txt) 獨立特訓
+                        <input type="file" accept=".txt" class="hidden" onchange="importStudentWrongBookTxt(event)" />
+                    </label>
+                </div>
             </div>
 
             <!-- 步驟 1：選擇年級 -->
@@ -236,6 +247,28 @@
                 </div>
             </div>
 
+            <!-- 學生錯題複習本專屬面板 (與教師自訂題庫完全分開) -->
+            <div id="wrongbook-options-panel" class="hidden mb-4 bg-indigo-50 border-2 border-indigo-600 rounded-2xl p-3.5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div>
+                        <label class="text-sm md:text-base font-black text-indigo-950 flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-indigo-700 text-white text-xs flex items-center justify-center">2</span>
+                            學生個人錯題複習本專區（與教師題庫完全獨立）：
+                        </label>
+                        <p id="wrongbook-panel-info" class="text-xs text-indigo-800 font-bold mt-0.5">尚未匯入錯題本，請點擊上方紫色按鈕上傳您下載的「錯題複習本.txt」檔案。</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow">
+                            ➕ 重新載入 .txt
+                            <input type="file" accept=".txt" class="hidden" onchange="importStudentWrongBookTxt(event)" />
+                        </label>
+                        <button onclick="clearStudentWrongBook()" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow">
+                            🗑️ 清空錯題本
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- 步驟 4：選擇時間計算模式與地鼠速度 -->
             <div class="bg-amber-100/90 border-2 border-amber-500 rounded-2xl p-3.5 mb-5 flex flex-col gap-3">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-amber-300 pb-2.5">
@@ -253,17 +286,17 @@
                     </div>
                 </div>
 
-                <!-- 新增：挑戰時間與練習模式切換 -->
+                <!-- 挑戰時間與練習模式切換 -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span class="text-xs md:text-sm font-black text-amber-950 flex items-center gap-1">
                         ⏱️ 挑戰時間與出題模式：
                     </span>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 max-w-lg">
                         <button id="playmode-btn-timed" onclick="selectPlayMode('timed')" class="py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-amber-800 text-white border-amber-950 shadow flex items-center justify-center gap-1.5">
-                            ⏱️ 限時挑戰 (90秒競賽)
+                            ⏱️ 限時挑戰 (90秒・錯題重考)
                         </button>
                         <button id="playmode-btn-practice" onclick="selectPlayMode('practice')" class="py-2 px-3 rounded-xl font-black text-xs md:text-sm border-2 transition-all bg-white text-amber-900 border-amber-600 hover:bg-amber-200/60 flex items-center justify-center gap-1.5">
-                            ♾️ 練習所有題庫 (不限時・全題庫練習)
+                            ♾️ 練習所有題庫 (不限時・全對通關)
                         </button>
                     </div>
                 </div>
@@ -294,8 +327,8 @@
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <button onclick="skipQuestion()" class="px-3 py-1 rounded-full bg-amber-800 hover:bg-amber-700 text-amber-100 text-xs font-bold border border-amber-500 shadow active:scale-95">
-                            🔄 換一題
+                        <button id="btn-skip-q" onclick="skipQuestion()" class="px-3 py-1 rounded-full bg-amber-800 hover:bg-amber-700 text-amber-100 text-xs font-bold border border-amber-500 shadow active:scale-95">
+                            🔄 換一題 (-3秒)
                         </button>
                         <button id="btn-finish-early" onclick="endGame(true)" class="hidden px-3 py-1 rounded-full bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-black border border-emerald-300 shadow active:scale-95">
                             🏁 完成交卷結算
@@ -346,26 +379,31 @@
                 🎊 恭喜！打破你的個人最高分紀錄！ 🎊
             </div>
 
-            <!-- 分數統計卡片 -->
-            <div class="grid grid-cols-3 gap-2 my-4 bg-amber-100 p-3 rounded-2xl border-2 border-amber-500">
+            <!-- 分數與詳細戰報統計卡片 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 my-4 bg-amber-100 p-3 rounded-2xl border-2 border-amber-500">
                 <div>
                     <span class="text-xs text-amber-800 font-bold block">本次總得分</span>
-                    <span id="final-score" class="text-2xl md:text-3xl font-black text-rose-600">0</span>
+                    <span id="final-score" class="text-2xl font-black text-rose-600">0</span>
                 </div>
-                <div class="border-x border-amber-300">
-                    <span class="text-xs text-amber-800 font-bold block">答對題數</span>
-                    <span id="final-correct" class="text-2xl md:text-3xl font-black text-emerald-700">0</span>
+                <div class="border-l border-amber-300">
+                    <span class="text-xs text-amber-800 font-bold block">答對 / 答錯</span>
+                    <span class="text-lg font-black"><span id="final-correct" class="text-emerald-700">0</span> / <span id="final-wrong" class="text-rose-600">0</span></span>
                 </div>
-                <div>
+                <div class="border-l border-amber-300">
+                    <span class="text-xs text-amber-800 font-bold block">挑戰耗時</span>
+                    <span id="final-time" class="text-lg font-black text-indigo-800">90秒</span>
+                    <span id="final-time-detail" class="block text-[10px] font-bold text-amber-700">+0s / -0s</span>
+                </div>
+                <div class="border-l border-amber-300">
                     <span class="text-xs text-amber-800 font-bold block">本機最高分</span>
-                    <span id="final-best" class="text-2xl md:text-3xl font-black text-amber-900">0</span>
+                    <span id="final-best" class="text-2xl font-black text-amber-900">0</span>
                 </div>
             </div>
 
             <!-- 登記排行榜表單 -->
             <div class="bg-white border-2 border-amber-600 rounded-2xl p-3.5 mb-4 text-left shadow-inner">
                 <label class="text-xs md:text-sm font-black text-amber-950 block mb-2">
-                    🏆 登記成績至雲端英雄榜（將依挑戰年級排名）：
+                    🏆 登記成績至雲端英雄榜（將依年級與挑戰模式分別排名）：
                 </label>
                 <div class="flex flex-col sm:flex-row gap-2">
                     <input type="text" id="player-name-input" maxlength="14" placeholder="請輸入班級座號或姓名..." class="flex-1 bg-amber-50 border-2 border-amber-500 rounded-xl px-3 py-2 text-sm font-black text-amber-950 focus:outline-none focus:border-emerald-600" />
@@ -408,7 +446,17 @@
         <div class="bg-[#fef9c3] border-[6px] border-[#92400e] rounded-3xl max-w-lg w-full p-5 md:p-6 shadow-2xl flex flex-col max-h-[88vh]">
             <div class="text-center border-b-2 border-amber-300 pb-3">
                 <h2 class="text-2xl md:text-3xl font-black text-amber-950">🏆 英雄排行榜</h2>
-                <p class="text-xs font-bold text-amber-800 mt-1">各年級前 3 名享有專屬榮耀皇冠與發光邊框！</p>
+                <p class="text-xs font-bold text-amber-800 mt-1">限時模式依總分排名；練習模式依「答對數 ➔ 耗時短」優先排名！</p>
+            </div>
+
+            <!-- 排行榜模式切換頁籤 -->
+            <div class="grid grid-cols-2 gap-2 mt-3 bg-amber-200/70 p-1 rounded-xl border border-amber-500">
+                <button id="lb-tab-timed" onclick="switchLeaderboardMode('timed')" class="py-1.5 rounded-lg font-black text-xs md:text-sm bg-amber-800 text-white shadow">
+                    ⏱️ 限時挑戰榜 (90秒)
+                </button>
+                <button id="lb-tab-practice" onclick="switchLeaderboardMode('practice')" class="py-1.5 rounded-lg font-black text-xs md:text-sm text-amber-900 hover:bg-amber-300/60">
+                    ♾️ 練習所有題庫榜
+                </button>
             </div>
 
             <div class="flex items-center justify-between gap-2 my-3">
@@ -630,6 +678,7 @@
         const STORAGE_KEY_SETTINGS = 'math_gophers_settings_v3';
         const STORAGE_KEY_BEST = 'math_gophers_personal_best_v3';
         const STORAGE_KEY_CUSTOM_BANK = 'math_gophers_custom_bank_v3';
+        const STORAGE_KEY_WRONGBOOK = 'math_gophers_student_wrongbook_v1';
 
         // 設定 PDF.js Worker
         if (window.pdfjsLib) {
@@ -715,11 +764,12 @@
         // =========================================================================
         // 2. 遊戲狀態變數
         // =========================================================================
-        let selectedBankMode = 'builtin'; // 'builtin' 或 'custom'
+        let selectedBankMode = 'builtin'; // 'builtin', 'custom', 或 'wrongbook'
         let selectedGrade = 7;
         let selectedSemester = 1;
         let selectedExam = 1;
         let selectedPlayMode = 'timed'; // 'timed' (90秒) 或 'practice' (不限時全題庫)
+        let leaderboardViewMode = 'timed'; // 排行榜檢視模式
         let soundEnabled = true;
         let adminUnlocked = false;
 
@@ -728,6 +778,12 @@
         let isFever = false;
         let feverTimeout = null;
         let timeLeft = 90;
+        let gameStartTime = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let timeBonusTotal = 0;
+        let timePenaltyTotal = 0;
+        let lastTimeSpent = 0;
         let gameTimerInterval = null;
         let moleSpawnTimeout = null;
         let isPlaying = false;
@@ -735,12 +791,14 @@
         let currentQuestion = null;
         let questionCount = 0;
         let practiceQueue = []; // 不限時全題庫模式的題目佇列
+        let timedRetryQueue = []; // 限時挑戰錯題再練習佇列
         let practiceTotalCount = 0;
         let wrongQuestionsLog = [];
 
         // 雲端與本機資料快取
         let cloudScoresCache = [];
         let customQuestionsBank = [];
+        let studentWrongBookBank = []; // 獨立存放學生匯入的錯題複習本
         let parsedPdfQuestionsBuffer = [];
         let stagedImageItems = [];
         let activePasteQuestionId = null;
@@ -792,7 +850,7 @@
                 osc.start(now);
                 osc.stop(now + 0.35);
             } else if (type === 'bomb') {
-                osc.type = 'Square';
+                osc.type = 'square';
                 osc.frequency.setValueAtTime(140, now);
                 osc.frequency.exponentialRampToValueAtTime(45, now + 0.38);
                 gain.gain.setValueAtTime(0.4, now);
@@ -818,12 +876,14 @@
         // =========================================================================
         window.addEventListener('DOMContentLoaded', () => {
             loadLocalCustomBank();
+            loadStudentWrongBook();
             loadSavedSettings();
             renderGradeButtons();
             populateLeaderboardGradeSelect();
             buildHolesDOM();
             updateScopeDescription();
             updateCustomBankUI();
+            updateWrongBookUI();
 
             // 背景同步雲端最高分與雲端自訂題庫
             preloadCloudScores();
@@ -841,7 +901,7 @@
                     if (data.grade >= 1 && data.grade <= 9) selectedGrade = data.grade;
                     if (data.semester === 1 || data.semester === 2) selectedSemester = data.semester;
                     if (data.exam >= 1 && data.exam <= 3) selectedExam = data.exam;
-                    if (data.bankMode === 'builtin' || data.bankMode === 'custom') selectedBankMode = data.bankMode;
+                    if (data.bankMode === 'builtin' || data.bankMode === 'custom' || data.bankMode === 'wrongbook') selectedBankMode = data.bankMode;
                     if (data.playMode === 'timed' || data.playMode === 'practice') selectedPlayMode = data.playMode;
                     if (data.playerName) {
                         const nameInput = document.getElementById('player-name-input');
@@ -929,7 +989,7 @@
             if (!cloudEl) return;
 
             const gradeScores = cloudScoresCache
-                .filter(item => Number(item.grade) === Number(selectedGrade))
+                .filter(item => Number(item.grade) === Number(selectedGrade) && (item.playMode || 'timed') === 'timed')
                 .sort((a, b) => Number(b.score) - Number(a.score));
 
             if (gradeScores.length > 0) {
@@ -944,20 +1004,30 @@
             selectedBankMode = mode;
             const btnBuiltin = document.getElementById('mode-btn-builtin');
             const btnCustom = document.getElementById('mode-btn-custom');
+            const btnWrong = document.getElementById('mode-btn-wrongbook');
             const panelBuiltin = document.getElementById('builtin-options-panel');
             const panelCustom = document.getElementById('custom-options-panel');
+            const panelWrong = document.getElementById('wrongbook-options-panel');
+
+            btnBuiltin.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60';
+            btnCustom.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60';
+            if (btnWrong) btnWrong.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-indigo-900 hover:bg-indigo-200/60';
+
+            panelBuiltin.classList.add('hidden');
+            panelCustom.classList.add('hidden');
+            if (panelWrong) panelWrong.classList.add('hidden');
 
             if (mode === 'builtin') {
-                btnBuiltin.className = 'px-4 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-amber-800 text-white shadow';
-                btnCustom.className = 'px-4 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60';
+                btnBuiltin.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-amber-800 text-white shadow';
                 panelBuiltin.classList.remove('hidden');
-                panelCustom.classList.add('hidden');
-            } else {
-                btnCustom.className = 'px-4 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-emerald-700 text-white shadow';
-                btnBuiltin.className = 'px-4 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all text-amber-900 hover:bg-amber-300/60';
-                panelBuiltin.classList.add('hidden');
+            } else if (mode === 'custom') {
+                btnCustom.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-emerald-700 text-white shadow';
                 panelCustom.classList.remove('hidden');
                 populateCustomSubjectsDropdown();
+            } else if (mode === 'wrongbook') {
+                if (btnWrong) btnWrong.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs md:text-sm transition-all bg-indigo-700 text-white shadow';
+                if (panelWrong) panelWrong.classList.remove('hidden');
+                updateWrongBookUI();
             }
             if (!skipSave) saveCurrentSettings();
             updateScopeDescription();
@@ -1006,14 +1076,24 @@
             if (!select) return;
             const currentVal = select.value;
 
-            const matching = customQuestionsBank.filter(q => Number(q.grade) === 0 || Number(q.grade) === Number(selectedGrade));
+            // 永遠顯示所有教師自訂/技藝競賽題庫科目（不受限於當前點選的年級，且排除舊版誤混入的錯題本）
+            const validCustom = customQuestionsBank.filter(q => q.subject !== '📂 錯題複習本特訓');
+            const gradeMatching = validCustom.filter(q => Number(q.grade) === 0 || Number(q.grade) === Number(selectedGrade));
+
             const subjectsMap = {};
-            matching.forEach(q => {
+            validCustom.forEach(q => {
                 const s = q.subject || '自訂題庫';
                 subjectsMap[s] = (subjectsMap[s] || 0) + 1;
             });
 
-            select.innerHTML = `<option value="ALL">📚 全部適用題庫 (共 ${matching.length} 題)</option>`;
+            select.innerHTML = `<option value="ALL">📚 全部教師自訂與技藝題庫 (共 ${validCustom.length} 題)</option>`;
+            if (gradeMatching.length > 0 && gradeMatching.length < validCustom.length) {
+                const optGrade = document.createElement('option');
+                optGrade.value = '__GRADE_ONLY__';
+                optGrade.innerText = `🎯 僅限本年級 (${GRADE_SHORT[selectedGrade]}) 適用題庫 (${gradeMatching.length} 題)`;
+                select.appendChild(optGrade);
+            }
+
             Object.keys(subjectsMap).forEach(subj => {
                 const opt = document.createElement('option');
                 opt.value = subj;
@@ -1029,25 +1109,31 @@
         function getFilteredCustomQuestions() {
             const subjSelect = document.getElementById('custom-subject-select');
             const chosenSubj = subjSelect ? subjSelect.value : 'ALL';
-            let list = customQuestionsBank.filter(q => Number(q.grade) === 0 || Number(q.grade) === Number(selectedGrade));
-            if (chosenSubj !== 'ALL') {
-                list = list.filter(q => (q.subject || '自訂題庫') === chosenSubj);
+            const validCustom = customQuestionsBank.filter(q => q.subject !== '📂 錯題複習本特訓');
+
+            if (chosenSubj === 'ALL') {
+                return validCustom;
             }
-            // 若該年級剛好沒配對到，退回顯示全部題庫以免學生空手而歸
-            if (list.length === 0 && customQuestionsBank.length > 0) {
-                list = [...customQuestionsBank];
+            if (chosenSubj === '__GRADE_ONLY__') {
+                const gm = validCustom.filter(q => Number(q.grade) === 0 || Number(q.grade) === Number(selectedGrade));
+                return gm.length > 0 ? gm : validCustom;
             }
-            return list;
+            return validCustom.filter(q => (q.subject || '自訂題庫') === chosenSubj);
         }
 
         function updateScopeDescription() {
             const descEl = document.getElementById('scope-desc-text');
             const subHeader = document.getElementById('header-subtitle');
 
-            if (selectedBankMode === 'custom') {
+            if (selectedBankMode === 'wrongbook') {
+                descEl.innerText = `個人錯題複習本專區（共收錄 ${studentWrongBookBank.length} 道錯題，與教師題庫完全獨立）`;
+                subHeader.innerText = `${GRADE_NAMES[selectedGrade]} ｜ 📝 學生個人錯題複習本 (${studentWrongBookBank.length}題)`;
+            } else if (selectedBankMode === 'custom') {
                 const list = getFilteredCustomQuestions();
                 const subjSelect = document.getElementById('custom-subject-select');
-                const subjText = (subjSelect && subjSelect.value !== 'ALL') ? subjSelect.value : '全部自訂與技藝競賽題庫';
+                const subjText = (subjSelect && subjSelect.value !== 'ALL' && subjSelect.value !== '__GRADE_ONLY__')
+                    ? subjSelect.value
+                    : '全部自訂與技藝競賽題庫';
                 descEl.innerText = `${subjText}（共收錄 ${list.length} 道題目，隨機洗牌選項防死背）`;
                 subHeader.innerText = `${GRADE_NAMES[selectedGrade]} ｜ 自訂題庫：${subjText}`;
             } else {
@@ -1056,6 +1142,120 @@
                 descEl.innerText = desc;
                 subHeader.innerText = `${GRADE_NAMES[selectedGrade]} ｜ ${selectedSemester === 1 ? '上學期' : '下學期'} ｜ 第 ${selectedExam} 次段考`;
             }
+        }
+
+        // 學生個人錯題複習本存取與匯入（獨立儲存於 STORAGE_KEY_WRONGBOOK，絕不覆蓋或干擾教師題庫）
+        function loadStudentWrongBook() {
+            try {
+                // 自動將先前版本誤混入 customQuestionsBank 的錯題抽離出來，還原純淨的教師題庫
+                const legacyWrong = customQuestionsBank.filter(q => q.subject === '📂 錯題複習本特訓');
+                if (legacyWrong.length > 0) {
+                    customQuestionsBank = customQuestionsBank.filter(q => q.subject !== '📂 錯題複習本特訓');
+                    saveLocalCustomBank();
+                }
+
+                const raw = localStorage.getItem(STORAGE_KEY_WRONGBOOK);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) studentWrongBookBank = parsed;
+                } else if (legacyWrong.length > 0) {
+                    studentWrongBookBank = legacyWrong;
+                    saveStudentWrongBook();
+                }
+            } catch (e) {}
+        }
+
+        function saveStudentWrongBook() {
+            try {
+                localStorage.setItem(STORAGE_KEY_WRONGBOOK, JSON.stringify(studentWrongBookBank));
+            } catch (e) {}
+        }
+
+        function updateWrongBookUI() {
+            const countEl = document.getElementById('menu-wrongbook-count');
+            if (countEl) countEl.innerText = studentWrongBookBank.length;
+            const infoEl = document.getElementById('wrongbook-panel-info');
+            if (infoEl) {
+                if (studentWrongBookBank.length > 0) {
+                    infoEl.innerText = `✅ 目前已載入 ${studentWrongBookBank.length} 道個人錯題！可直接點擊下方「開始打地鼠解題」進行特訓，或隨時切換回上方「教師自訂題庫」。`;
+                } else {
+                    infoEl.innerText = '尚未匯入錯題本，請點擊上方紫色按鈕或右側「重新載入 .txt」上傳您下載的錯題複習本。';
+                }
+            }
+        }
+
+        function clearStudentWrongBook() {
+            studentWrongBookBank = [];
+            saveStudentWrongBook();
+            updateWrongBookUI();
+            updateScopeDescription();
+            showToast('🗑️ 已清空個人錯題複習本！');
+        }
+
+        // 學生端匯入錯題複習本 (.txt) 獨立特訓
+        function importStudentWrongBookTxt(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result || '';
+                const lines = text.split(/\r?\n/);
+                const imported = [];
+                let curQ = null;
+                let curAns = null;
+                let curWrong = null;
+
+                lines.forEach(line => {
+                    const mQ = line.match(/^第\s*\d+\s*題[:：]\s*(.+)$/);
+                    const mA = line.match(/✅\s*正確答案[:：]\s*(.+)$/);
+                    const mW = line.match(/❌\s*(?:當時誤敲|您的選擇)[:：]\s*(.+)$/);
+                    if (mQ) {
+                        if (curQ && curAns) {
+                            imported.push({
+                                id: `wb_${Date.now()}_${imported.length}`,
+                                grade: selectedGrade,
+                                subject: '📝 個人錯題複習本',
+                                q: curQ,
+                                a: curAns,
+                                distractors: ensureUniqueDistractors(curAns, curWrong ? [curWrong] : []),
+                                imgData: null
+                            });
+                        }
+                        curQ = mQ[1].trim();
+                        curAns = null;
+                        curWrong = null;
+                    } else if (mA) {
+                        curAns = mA[1].trim();
+                    } else if (mW) {
+                        curWrong = mW[1].trim();
+                    }
+                });
+
+                if (curQ && curAns) {
+                    imported.push({
+                        id: `wb_${Date.now()}_${imported.length}`,
+                        grade: selectedGrade,
+                        subject: '📝 個人錯題複習本',
+                        q: curQ,
+                        a: curAns,
+                        distractors: ensureUniqueDistractors(curAns, curWrong ? [curWrong] : []),
+                        imgData: null
+                    });
+                }
+
+                if (imported.length === 0) {
+                    showToast('⚠️ 無法從檔案中解析出錯題，請確認是否為本系統下載的錯題複習本 (.txt)！', true);
+                    return;
+                }
+
+                studentWrongBookBank = imported;
+                saveStudentWrongBook();
+                updateWrongBookUI();
+                selectBankMode('wrongbook');
+                showToast(`🎉 已成功匯入 ${imported.length} 道錯題至「📝 我的錯題複習本」！原本的教師題庫也完整保留！`);
+            };
+            reader.readAsText(file, 'UTF-8');
+            event.target.value = '';
         }
 
         // =========================================================================
@@ -1759,7 +1959,7 @@
                     break;
                 }
 
-                // ---------------- 國三 (九年級) 全面多樣化擴充 ----------------
+                // ---------------- 國三 (九年級) ----------------
                 case '9_1_1': {
                     const sub = randInt(1, 3);
                     if (sub === 1) {
@@ -1932,11 +2132,16 @@
         }
 
         // =========================================================================
-        // 6. 遊戲核心流程：支援「限時 90 秒」與「練習所有題庫（不限時）」
+        // 6. 遊戲核心流程：支援「限時 90 秒（含錯題重考）」與「練習所有題庫（不限時）」
         // =========================================================================
         function startGame() {
             initAudio();
-            if (selectedBankMode === 'custom') {
+            if (selectedBankMode === 'wrongbook') {
+                if (studentWrongBookBank.length === 0) {
+                    showToast('⚠️ 目前「我的錯題複習本」是空的，請先點擊紫色按鈕匯入錯題複習本 (.txt)！', true);
+                    return;
+                }
+            } else if (selectedBankMode === 'custom') {
                 const avail = getFilteredCustomQuestions();
                 if (avail.length === 0) {
                     showToast('⚠️ 目前尚無自訂題庫，請先點右上角「🔐 題庫管理」上傳 PDF 或文字題庫！', true);
@@ -1957,7 +2162,13 @@
             combo = 0;
             isFever = false;
             questionCount = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            timeBonusTotal = 0;
+            timePenaltyTotal = 0;
             wrongQuestionsLog = [];
+            timedRetryQueue = [];
+            gameStartTime = Date.now();
             isPlaying = true;
 
             document.getElementById('score-display').innerText = '0';
@@ -1971,13 +2182,15 @@
             const timerDisplay = document.getElementById('timer-display');
             const timerUnit = document.getElementById('timer-unit');
             const finishEarlyBtn = document.getElementById('btn-finish-early');
+            const skipBtn = document.getElementById('btn-skip-q');
 
             if (selectedPlayMode === 'practice') {
                 // 不限時・練習所有題庫模式：建立不重複的完整題目佇列
-                if (selectedBankMode === 'custom') {
+                if (selectedBankMode === 'wrongbook') {
+                    practiceQueue = shuffleArray([...studentWrongBookBank]);
+                } else if (selectedBankMode === 'custom') {
                     practiceQueue = shuffleArray(getFilteredCustomQuestions());
                 } else {
-                    // 內建數學題庫產生 30 道不重複的隨機題目作為一輪完整練習
                     practiceQueue = [];
                     const seenQ = new Set();
                     for (let attempt = 0; attempt < 90 && practiceQueue.length < 30; attempt++) {
@@ -1992,6 +2205,7 @@
                 timerDisplay.innerText = '♾️ 不限時';
                 timerUnit.innerText = '';
                 finishEarlyBtn.classList.remove('hidden');
+                skipBtn.innerText = '🔄 換一題';
             } else {
                 // 經典 90 秒限時挑戰
                 practiceQueue = [];
@@ -2000,6 +2214,7 @@
                 timerDisplay.innerText = timeLeft;
                 timerUnit.innerText = '秒';
                 finishEarlyBtn.classList.add('hidden');
+                skipBtn.innerText = '🔄 換一題 (-3秒)';
 
                 gameTimerInterval = setInterval(() => {
                     if (!isPlaying) return;
@@ -2036,18 +2251,26 @@
 
             if (selectedPlayMode === 'practice') {
                 if (practiceQueue.length === 0) {
-                    // 題庫所有題目皆已練習完畢！
                     endGame(true);
                     return;
                 }
                 const rawQ = practiceQueue.shift();
                 currentQuestion = normalizeQuestionItem(rawQ);
+                currentQuestion._hasFailedThisTurn = false;
                 questionCount++;
-                document.getElementById('q-counter-tag').innerText = `進度：第 ${questionCount} / ${practiceTotalCount} 題`;
+                document.getElementById('q-counter-tag').innerText = `進度：已完成 ${correctCount} / ${practiceTotalCount} 題`;
             } else {
                 questionCount++;
                 document.getElementById('q-counter-tag').innerText = `第 ${questionCount} 題`;
-                if (selectedBankMode === 'custom') {
+                // 限時挑戰模式：若錯題重考佇列中有題目，有 40% 機率優先抽出錯題重考（選項重新洗牌）
+                if (timedRetryQueue.length > 0 && Math.random() < 0.4) {
+                    const retryItem = timedRetryQueue.shift();
+                    currentQuestion = normalizeQuestionItem(retryItem);
+                    currentQuestion.topic = `🔄 錯題重考：${currentQuestion.topic}`;
+                } else if (selectedBankMode === 'wrongbook') {
+                    const pick = studentWrongBookBank[randInt(0, studentWrongBookBank.length - 1)];
+                    currentQuestion = normalizeQuestionItem(pick);
+                } else if (selectedBankMode === 'custom') {
                     const pool = getFilteredCustomQuestions();
                     const pick = pool[randInt(0, pool.length - 1)];
                     currentQuestion = normalizeQuestionItem(pick);
@@ -2087,7 +2310,20 @@
 
         function skipQuestion() {
             if (!isPlaying) return;
-            document.getElementById('q-feedback').innerText = '⏭️ 已切換下一題！';
+            if (selectedPlayMode === 'timed') {
+                timeLeft = Math.max(0, timeLeft - 3);
+                timePenaltyTotal += 3;
+                document.getElementById('timer-display').innerText = timeLeft;
+                document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-amber-800 min-h-[20px] mt-1';
+                document.getElementById('q-feedback').innerText = '⏭️ 換一題（扣除 3 秒）！';
+                if (timeLeft <= 0) {
+                    endGame(false);
+                    return;
+                }
+            } else {
+                // 練習模式下換題會把該題排回佇列尾端
+                if (currentQuestion) practiceQueue.push(currentQuestion);
+            }
             nextQuestion();
         }
 
@@ -2098,7 +2334,6 @@
             clearTimeout(moleSpawnTimeout);
             if (!isPlaying || !currentQuestion) return;
 
-            // 先讓所有地鼠縮回洞裡
             for (let i = 0; i < 6; i++) {
                 activeHolesState[i] = null;
                 const moleEl = document.getElementById(`mole-${i}`);
@@ -2109,7 +2344,6 @@
                 if (!isPlaying || !currentQuestion) return;
 
                 const holeIndices = shuffleArray([0, 1, 2, 3, 4, 5]);
-                // 準備 1 個正解 + 3 個不重複誘答，每次鑽出都重新洗牌洞口
                 const options = [
                     { text: currentQuestion.a, isCorrect: true, type: 'answer' },
                     ...currentQuestion.distractors.slice(0, 3).map(d => ({ text: d, isCorrect: false, type: 'answer' }))
@@ -2123,7 +2357,7 @@
                     document.getElementById(`mole-${hIdx}`).classList.add('up');
                 }
 
-                // 隨機機率在剩餘第 5 個洞鑽出道具地鼠（限時模式可出時鐘或炸彈；不限時模式出炸彈）
+                // 隨機機率在剩餘第 5 個洞鑽出道具地鼠
                 if (Math.random() < 0.35) {
                     const bonusHole = holeIndices[4];
                     const isClock = (selectedPlayMode === 'timed' && Math.random() < 0.55);
@@ -2135,7 +2369,6 @@
                     document.getElementById(`mole-${bonusHole}`).classList.add('up');
                 }
 
-                // 依據選擇的速度決定地鼠停留秒數
                 const speedVal = document.getElementById('speed-select').value;
                 let stayMs = 3500;
                 if (speedVal === 'slow') stayMs = 4500;
@@ -2158,7 +2391,6 @@
             const hammerLayer = document.getElementById(`hammer-layer-${holeIdx}`);
             const boardEl = document.getElementById('question-board');
 
-            // 顯示木槌敲擊動畫與震動
             hammerLayer.innerHTML = getHammerStrikeSVG();
             setTimeout(() => { hammerLayer.innerHTML = ''; }, 430);
             moleEl.classList.remove('up');
@@ -2175,6 +2407,7 @@
             if (state.type === 'clock') {
                 playTone('clock');
                 timeLeft += 10;
+                timeBonusTotal += 10;
                 document.getElementById('timer-display').innerText = timeLeft;
                 document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-sky-700 min-h-[20px] mt-1';
                 document.getElementById('q-feedback').innerText = '⏳ 敲中時鐘地鼠！獎勵時間 +10 秒！';
@@ -2187,16 +2420,25 @@
                 score = Math.max(0, score - 15);
                 combo = 0;
                 deactivateFever();
+                if (selectedPlayMode === 'timed') {
+                    timeLeft = Math.max(0, timeLeft - 5);
+                    timePenaltyTotal += 5;
+                    document.getElementById('timer-display').innerText = timeLeft;
+                }
                 updateScoreAndComboUI();
                 document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-rose-600 min-h-[20px] mt-1';
-                document.getElementById('q-feedback').innerText = '💥 糟糕！誤敲炸彈地鼠，扣 15 分且中斷 Combo！';
+                document.getElementById('q-feedback').innerText = selectedPlayMode === 'timed'
+                    ? '💥 誤敲炸彈！扣 15 分、扣 5 秒且中斷 Combo！'
+                    : '💥 誤敲炸彈！扣 15 分且中斷 Combo！';
                 spawnConfetti(centerX, centerY, '#ef4444');
+                if (selectedPlayMode === 'timed' && timeLeft <= 0) endGame(false);
                 return;
             }
 
             // 一般答案地鼠判定
             if (state.isCorrect) {
                 playTone('correct');
+                correctCount++;
                 combo++;
                 if (combo >= 5 && !isFever) {
                     activateFever();
@@ -2212,12 +2454,13 @@
                 setTimeout(() => nextQuestion(), 380);
             } else {
                 playTone('wrong');
+                wrongCount++;
                 combo = 0;
                 score = Math.max(0, score - 5);
                 deactivateFever();
                 updateScoreAndComboUI();
 
-                // 記錄到錯題本（避免同一題重複記錄）
+                // 記錄到錯題複習本（保留第一次答錯紀錄）
                 if (currentQuestion && !wrongQuestionsLog.some(w => w.q === currentQuestion.q)) {
                     wrongQuestionsLog.push({
                         q: currentQuestion.q,
@@ -2226,8 +2469,26 @@
                     });
                 }
 
+                // 錯題再練習機制：
+                if (currentQuestion && !currentQuestion._hasFailedThisTurn) {
+                    currentQuestion._hasFailedThisTurn = true;
+                    const cloneQ = {
+                        topic: currentQuestion.topic.replace(/^🔄 錯題重考：/, ''),
+                        q: currentQuestion.q,
+                        a: currentQuestion.a,
+                        distractors: shuffleArray(currentQuestion.distractors),
+                        imgData: currentQuestion.imgData
+                    };
+                    if (selectedPlayMode === 'timed') {
+                        timedRetryQueue.push(cloneQ);
+                    } else {
+                        practiceQueue.push(cloneQ);
+                        practiceTotalCount++;
+                    }
+                }
+
                 document.getElementById('q-feedback').className = 'text-xs md:text-sm font-black text-rose-600 min-h-[20px] mt-1';
-                document.getElementById('q-feedback').innerText = `⚠️ 敲錯囉！「${state.text}」不是正確答案，再找找看！`;
+                document.getElementById('q-feedback').innerText = `⚠️ 敲錯囉！「${state.text}」不是正確答案，此題稍後將再次出現！`;
             }
         }
 
@@ -2263,6 +2524,7 @@
             clearTimeout(moleSpawnTimeout);
             deactivateFever();
 
+            lastTimeSpent = Math.max(1, Math.round((Date.now() - gameStartTime) / 1000));
             const isNewRecord = setPersonalBest(selectedGrade, score);
             const bestScore = getPersonalBest(selectedGrade);
 
@@ -2271,7 +2533,12 @@
                 : '⏰ 挑戰時間到！';
             document.getElementById('gameover-subtitle').innerText = `${GRADE_NAMES[selectedGrade]} ｜ ${selectedPlayMode === 'practice' ? '練習所有題庫模式' : '90秒限時挑戰'}`;
             document.getElementById('final-score').innerText = score;
-            document.getElementById('final-correct').innerText = Math.max(0, questionCount - (completedPractice && practiceQueue.length === 0 ? 0 : 1));
+            document.getElementById('final-correct').innerText = correctCount;
+            document.getElementById('final-wrong').innerText = wrongCount;
+            document.getElementById('final-time').innerText = `${lastTimeSpent}秒`;
+            document.getElementById('final-time-detail').innerText = selectedPlayMode === 'timed'
+                ? `加時+${timeBonusTotal}s / 扣時-${timePenaltyTotal}s`
+                : '不限時完整練習';
             document.getElementById('final-best').innerText = bestScore;
 
             const banner = document.getElementById('new-record-banner');
@@ -2330,7 +2597,7 @@
             const lines = [
                 `=== 數學與多學科打地鼠大挑戰 - 專屬錯題複習本 ===`,
                 `年級範圍：${GRADE_NAMES[selectedGrade]}`,
-                `本次得分：${score} 分`,
+                `本次得分：${score} 分 ｜ 答對：${correctCount} 題 ｜ 答錯：${wrongCount} 題`,
                 `----------------------------------------`
             ];
             wrongQuestionsLog.forEach((item, idx) => {
@@ -2395,7 +2662,7 @@
         }
 
         // =========================================================================
-        // 8. 雲端排行榜 (Google Apps Script 串接)
+        // 8. 雲端排行榜 (支援限時挑戰與練習模式分離排名)
         // =========================================================================
         function populateLeaderboardGradeSelect() {
             const sel = document.getElementById('leaderboard-grade-select');
@@ -2407,6 +2674,20 @@
                 if (g === selectedGrade) opt.selected = true;
                 sel.appendChild(opt);
             }
+        }
+
+        function switchLeaderboardMode(mode) {
+            leaderboardViewMode = mode;
+            const tabTimed = document.getElementById('lb-tab-timed');
+            const tabPractice = document.getElementById('lb-tab-practice');
+            if (mode === 'timed') {
+                tabTimed.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm bg-amber-800 text-white shadow';
+                tabPractice.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm text-amber-900 hover:bg-amber-300/60';
+            } else {
+                tabPractice.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm bg-emerald-700 text-white shadow';
+                tabTimed.className = 'py-1.5 rounded-lg font-black text-xs md:text-sm text-amber-900 hover:bg-amber-300/60';
+            }
+            renderLeaderboardList();
         }
 
         async function preloadCloudScores() {
@@ -2425,6 +2706,7 @@
 
         function openLeaderboardModal() {
             document.getElementById('leaderboard-grade-select').value = selectedGrade;
+            switchLeaderboardMode(selectedPlayMode);
             const modal = document.getElementById('leaderboard-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -2451,12 +2733,21 @@
             const g = Number(document.getElementById('leaderboard-grade-select').value);
 
             const filtered = cloudScoresCache
-                .filter(item => Number(item.grade) === g)
-                .sort((a, b) => Number(b.score) - Number(a.score))
+                .filter(item => Number(item.grade) === g && (item.playMode || 'timed').toLowerCase() === leaderboardViewMode)
+                .sort((a, b) => {
+                    if (leaderboardViewMode === 'practice') {
+                        // 練習模式優先比答對題數，答對數相同比耗時短，最後比總分
+                        const ca = Number(a.correctCount || 0), cb = Number(b.correctCount || 0);
+                        if (cb !== ca) return cb - ca;
+                        const ta = Number(a.timeSpent || 9999), tb = Number(b.timeSpent || 9999);
+                        if (ta !== tb) return ta - tb;
+                    }
+                    return Number(b.score) - Number(a.score);
+                })
                 .slice(0, 30);
 
             if (filtered.length === 0) {
-                container.innerHTML = `<p class="text-center text-amber-800 font-bold py-10">🌱 目前「${GRADE_SHORT[g]}」尚無挑戰紀錄，快來搶下第一名吧！</p>`;
+                container.innerHTML = `<p class="text-center text-amber-800 font-bold py-10">🌱 目前「${GRADE_SHORT[g]}（${leaderboardViewMode === 'timed' ? '限時挑戰' : '練習所有題庫'}）」尚無紀錄，快來搶下第一名吧！</p>`;
                 return;
             }
 
@@ -2480,14 +2771,28 @@
                     titleBadge = '<span class="bg-orange-700 text-white text-[10px] font-black px-2 py-0.5 rounded-full">季軍</span>';
                 }
 
+                const cCnt = Number(row.correctCount || 0);
+                const wCnt = Number(row.wrongCount || 0);
+                const tSpent = Number(row.timeSpent || 0);
+                const tBonus = Number(row.timeBonus || 0);
+                const tPen = Number(row.timePenalty || 0);
+                const detailSub = (cCnt > 0 || wCnt > 0 || tSpent > 0)
+                    ? `✅${cCnt}題 ｜ ❌${wCnt}題 ｜ ⏱️${tSpent}秒${leaderboardViewMode === 'timed' ? ` (+${tBonus}s/-${tPen}s)` : ''}`
+                    : '經典紀錄';
+
                 return `
-                    <div class="${cardStyle} rounded-2xl px-4 py-2.5 flex items-center justify-between">
+                    <div class="${cardStyle} rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2.5">
                             ${rankIcon}
-                            <span class="font-black text-slate-900 text-sm md:text-base">${escapeSvgText(row.name)}</span>
-                            ${titleBadge}
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-black text-slate-900 text-sm md:text-base">${escapeSvgText(row.name)}</span>
+                                    ${titleBadge}
+                                </div>
+                                <div class="text-[11px] font-bold text-amber-900/80">${detailSub}</div>
+                            </div>
                         </div>
-                        <div class="font-black text-amber-950 text-base md:text-lg">
+                        <div class="font-black text-amber-950 text-base md:text-lg shrink-0">
                             ${Number(row.score)} <span class="text-xs">分</span>
                         </div>
                     </div>
@@ -2510,28 +2815,34 @@
             btn.disabled = true;
             btn.innerText = '⏳ 傳送中...';
 
+            const payload = {
+                action: 'addScore',
+                name: name,
+                grade: selectedGrade,
+                score: score,
+                playMode: selectedPlayMode,
+                correctCount: correctCount,
+                wrongCount: wrongCount,
+                timeSpent: lastTimeSpent,
+                timeBonus: timeBonusTotal,
+                timePenalty: timePenaltyTotal
+            };
+
             try {
                 await fetch(GAS_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        action: 'addScore',
-                        name: name,
-                        grade: selectedGrade,
-                        score: score
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 cloudScoresCache.push({
                     timestamp: new Date().toISOString(),
-                    name: name,
-                    grade: selectedGrade,
-                    score: score
+                    ...payload
                 });
                 updateMenuBestBadges();
 
                 btn.innerText = '✅ 已登錄';
-                statusMsg.innerText = '🎉 成績已成功寫入雲端試算表排行榜！';
+                statusMsg.innerText = '🎉 成績與詳細戰報已成功寫入雲端試算表排行榜！';
                 statusMsg.classList.remove('hidden');
                 showToast('🏆 成績已成功登錄至排行榜！');
             } catch (err) {
@@ -2621,7 +2932,6 @@
             });
         }
 
-        // 自動從上傳檔案名稱清理出乾淨的題庫名稱
         function extractCleanSubjectNameFromFile(filename) {
             return String(filename || '')
                 .replace(/\.(pdf|txt|csv|png|jpe?g|webp|json)$/i, '')
@@ -2630,7 +2940,6 @@
                 .trim();
         }
 
-        // 消除 PDF 轉換時中文字之間的零碎空白
         function cleanSpacedCjkText(str) {
             return String(str || '')
                 .replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2')
@@ -2639,12 +2948,10 @@
                 .trim();
         }
 
-        // 處理 PDF 題庫上傳與自動辨識（解決設計群 158 題遺漏 + 自動帶入檔名 + 避開左側答案欄自動切圖）
         async function handlePdfFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // 1. 自動抓取檔案名稱填入「科目/題庫名稱」欄位
             const subjInput = document.getElementById('admin-subject-input');
             if (subjInput) {
                 subjInput.value = extractCleanSubjectNameFromFile(file.name);
@@ -2661,7 +2968,7 @@
                 const numPages = pdf.numPages;
 
                 let fullTextPages = [];
-                let pageCropMap = {}; // 儲存含圖題目的自動裁切圖片 DataURL
+                let pageCropMap = {};
 
                 for (let pageNum = 1; pageNum <= numPages; pageNum++) {
                     statusEl.innerText = `⏳ 正在解析第 ${pageNum} / ${numPages} 頁...`;
@@ -2669,7 +2976,6 @@
                     const viewport = page.getViewport({ scale: 1.0 });
                     const textContent = await page.getTextContent();
 
-                    // 依 Y 座標（由上而下，容差 4.5pt）與 X 座標（由左而右）排序
                     const items = textContent.items.map(item => ({
                         str: item.str,
                         x: item.transform[4],
@@ -2681,7 +2987,6 @@
                         return a.x - b.x;
                     });
 
-                    // 聚合為行，並過濾純頁碼行與頁首標題
                     const lines = [];
                     items.forEach(it => {
                         if (!it.str.trim()) return;
@@ -2696,7 +3001,7 @@
 
                     const filteredLines = lines.filter(ln => {
                         const t = ln.text.trim();
-                        if (/^\d{1,2}$/.test(t) && ln.y < 65) return false; // 底部頁碼
+                        if (/^\d{1,2}$/.test(t) && ln.y < 65) return false;
                         if (/國民中學技藝競賽|學科題庫/.test(t) && !/\(\s*[1-4]\s*\)/.test(t)) return false;
                         return true;
                     });
@@ -2704,7 +3009,6 @@
                     const pageStr = filteredLines.map(ln => ln.text).join('\n');
                     fullTextPages.push(pageStr);
 
-                    // 偵測本頁是否有需要自動切圖的題號（含「如圖、下圖、附圖、右圖、圖中、符號、右列」等關鍵字）
                     const qPosList = [];
                     filteredLines.forEach(ln => {
                         const m = ln.text.match(/(?:^|\s)(\d{1,3})\s*[.、．]/);
@@ -2716,7 +3020,6 @@
                         }
                     });
 
-                    // 若該頁有題目含圖形關鍵字，才渲染該頁 Canvas 並精準裁切（左界從 14% 開始，避開左側答案欄！）
                     const needCropOnPage = qPosList.filter((qp, idx) => {
                         const nextY = idx + 1 < qPosList.length ? qPosList[idx + 1].y : 45;
                         const spanLines = filteredLines.filter(l => l.y <= qp.y + 8 && l.y >= nextY);
@@ -2741,7 +3044,6 @@
                             const topPdfY = Math.min(viewport.height - 10, qp.y + 18);
                             const botPdfY = Math.max(35, nextY + 6);
 
-                            // X 軸從 14% 開始裁切，徹底避開最左邊的 (1)~(4) 答案欄！
                             const cropX = Math.floor(renderVp.width * 0.14);
                             const cropW = Math.floor(renderVp.width * 0.83);
                             const cropY = Math.max(0, Math.floor((viewport.height - topPdfY) * scale));
@@ -2774,10 +3076,6 @@
             }
         }
 
-        // =========================================================================
-        // 終極版技藝競賽 / 檢定題庫解析引擎（支援 250 題雙佇列分離救援 + 嚴格遞增題號鎖定）
-        // 解決《設計群》第 158 題答案與題號被圖片拆開、《食品群》括號干擾、《電機群》符號吃字問題
-        // =========================================================================
         function parseExamBankFullText(rawText, pageCropMap = {}) {
             let text = String(rawText || '')
                 .replace(/（/g, '(')
@@ -2785,16 +3083,12 @@
                 .replace(/【/g, '(')
                 .replace(/】/g, ')');
 
-            // 步驟 1：先處理 PDF 雙欄分離現象（例如多個 "(1)\n6.\n(3)\n7." 擠在一起，或獨立的 "(1)" 答案欄）
-            // 我們直接以「題號 1. ~ 250.」的遞增順序作為絕對錨點來切分每一題！
-            // 先找尋所有可能的「(答案) 題號.」或獨立「題號.」位置
             const tokenRegex = /(?:\(\s*([1-4A-Da-d])\s*\)\s*)?(?:^|[\s\n。？?！!）)])(\d{1,3})\s*[.、．]\s*(?=[^\d]|$)/g;
             let matches = [];
             let m;
             while ((m = tokenRegex.exec(text)) !== null) {
                 const ansRaw = m[1] ? m[1].toUpperCase() : null;
                 const qNum = parseInt(m[2], 10);
-                // 計算題號真正開始的索引
                 const numPos = m.index + m[0].lastIndexOf(m[2]);
                 matches.push({
                     fullIndex: m.index,
@@ -2805,7 +3099,6 @@
                 });
             }
 
-            // 步驟 2：根據嚴格遞增順序（允許尋找 1, 2, 3 ... 250）挑選真正的題號錨點，排除題幹內部的數字（如 1.6V、3.2mm）
             const validAnchors = [];
             let expectedNum = 1;
 
@@ -2815,7 +3108,6 @@
                     validAnchors.push(cur);
                     expectedNum++;
                 } else if (cur.qNum > expectedNum && cur.qNum <= expectedNum + 5) {
-                    // 檢查後續是否有更吻合 expectedNum 的項目，若無則容許跳號並推進
                     const hasExactLater = matches.slice(i + 1, i + 8).some(x => x.qNum === expectedNum);
                     if (!hasExactLater) {
                         validAnchors.push(cur);
@@ -2824,12 +3116,9 @@
                 }
             }
 
-            // 步驟 3：若部分題號前面沒有緊貼 (1)~(4)（例如設計群第 158 題的 (1) 被圖片推到前面或後面），
-            // 從該題區間前後擷取游離的獨立答案括號 `(1)`~`(4)` 進行補齊
             const results = [];
             const letterMap = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, '1': 1, '2': 2, '3': 3, '4': 4 };
 
-            // 收集全文中所有「後面沒有緊跟選項文字、單獨存在」的游離答案括號佇列
             for (let i = 0; i < validAnchors.length; i++) {
                 const anchor = validAnchors[i];
                 const nextAnchor = i + 1 < validAnchors.length ? validAnchors[i + 1] : null;
@@ -2837,7 +3126,6 @@
                 const sliceEnd = nextAnchor ? nextAnchor.fullIndex : text.length;
                 let block = text.slice(sliceStart, sliceEnd).trim();
 
-                // 若此錨點本身沒抓到答案，往錨點前方 35 字元內或區塊結尾尋找游離的 (1)~(4)
                 let ansCode = anchor.ans;
                 if (!ansCode) {
                     const prevWindow = text.slice(Math.max(0, anchor.fullIndex - 40), anchor.numIndex);
@@ -2848,7 +3136,6 @@
                     }
                 }
                 if (!ansCode) {
-                    // 檢查區塊開頭或前一段結尾是否有游離的 (1)~(4)
                     const trailMatch = block.match(/^\(\s*([1-4A-Da-d])\s*\)/);
                     if (trailMatch) {
                         ansCode = trailMatch[1].toUpperCase();
@@ -2856,11 +3143,8 @@
                     }
                 }
 
-                // 清理區塊末尾可能殘留給下一題的獨立答案括號 (例如區塊最後出現 "\n(1)")
                 block = block.replace(/\n\s*\(\s*[1-4A-Da-d]\s*\)\s*$/, '').trim();
 
-                // 步驟 4：從 block 中拆出題幹與 (1) (2) (3) (4) 四個選項
-                // 從後往前尋找最後一組依序出現的 (1)...(2)...(3)...(4) 或救援被圖片吃掉的 )
                 const parsedOpts = extractFourOptionsFromBlock(block);
                 const qStem = cleanSpacedCjkText(parsedOpts.stem);
                 const opts = parsedOpts.options.map(o => cleanSpacedCjkText(stripOptionPrefix(o)));
@@ -2882,17 +3166,14 @@
             return results;
         }
 
-        // 從單題文字區塊中精準切出題幹與 4 個選項（支援題幹內含 (pH值)、(澄粉) 等補充括號，以及救援被圖吃掉的 (1)）
         function extractFourOptionsFromBlock(block) {
             let cleanBlock = String(block || '').replace(/\r/g, ' ').trim();
 
-            // 尋找最後出現的 (4)、(3)、(2)、(1) 定位點
             const pos4 = findLastOptionMarker(cleanBlock, 4, cleanBlock.length);
             const pos3 = pos4 !== -1 ? findLastOptionMarker(cleanBlock, 3, pos4) : -1;
             const pos2 = pos3 !== -1 ? findLastOptionMarker(cleanBlock, 2, pos3) : -1;
             let pos1 = pos2 !== -1 ? findLastOptionMarker(cleanBlock, 1, pos2) : -1;
 
-            // 智慧救援：若像電機群第 250 題 "(1)" 的左括號與 1 被圖片吃掉只剩 ")出口燈 (2)日光燈"
             if (pos1 === -1 && pos2 !== -1) {
                 const before2 = cleanBlock.slice(0, pos2);
                 const brokenParen = before2.lastIndexOf(')');
@@ -2907,7 +3188,6 @@
                 const o2 = cleanBlock.slice(pos2, pos3).replace(/^\s*[\(（]?\s*[2B]\s*[\)）]\s*/, '').trim();
                 const o3 = cleanBlock.slice(pos3, pos4).replace(/^\s*[\(（]?\s*[3C]\s*[\)）]\s*/, '').trim();
                 let o4 = cleanBlock.slice(pos4).replace(/^\s*[\(（]?\s*[4D]\s*[\)）]\s*/, '').trim();
-                // 去除選項4結尾句號
                 o4 = o4.replace(/[。．.]+\s*$/, '').trim();
                 return {
                     stem: stem || '請選出正確答案：',
@@ -2915,7 +3195,6 @@
                 };
             }
 
-            // 備用方案：若該題選項皆為純圖片（如流程圖符號題），自動提供 (1)~(4) 作為選項
             return {
                 stem: cleanBlock,
                 options: ['選項(1)', '選項(2)', '選項(3)', '選項(4)']
@@ -2981,7 +3260,6 @@
             updateCustomBankUI();
             populateCustomSubjectsDropdown();
 
-            // 自動將主選單切換至對應年級與自訂題庫模式
             if (grade >= 1 && grade <= 9) {
                 selectedGrade = grade;
                 renderGradeButtons();
@@ -2993,7 +3271,6 @@
             syncQuestionsToCloud();
         }
 
-        // 文字檔 (.txt / .csv) 上傳與自動帶入檔名
         function handleTxtFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -3021,7 +3298,6 @@
             const subject = document.getElementById('admin-subject-input').value.trim() || '自訂題庫';
 
             let added = [];
-            // 若包含 (1) (2) (3) (4) 考卷格式，使用智慧考卷引擎解析
             if (/\(\s*[1-4]\s*\)/.test(raw)) {
                 const parsed = parseExamBankFullText(raw, {});
                 added = parsed.map(item => ({
@@ -3034,7 +3310,6 @@
                     imgData: null
                 }));
             } else {
-                // CSV 格式：題目,正解,誘答1,誘答2,誘答3
                 const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
                 lines.forEach((ln, idx) => {
                     const parts = ln.split(/[,，\t]/).map(s => s.trim()).filter(Boolean);
@@ -3085,7 +3360,6 @@
             URL.revokeObjectURL(url);
         }
 
-        // 圖片檔上傳與自動壓縮
         function compressImageFileToDataUrl(file, maxW = 720, quality = 0.78) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -3224,10 +3498,23 @@
         // =========================================================================
         function loadLocalCustomBank() {
             try {
-                const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_BANK);
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) customQuestionsBank = parsed;
+                const keysToTry = [
+                    STORAGE_KEY_CUSTOM_BANK,
+                    'math_gophers_custom_bank_v7',
+                    'math_gophers_custom_bank_v6',
+                    'math_gophers_custom_bank_v5',
+                    'math_gophers_custom_bank_v4'
+                ];
+                for (const k of keysToTry) {
+                    const raw = localStorage.getItem(k);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            customQuestionsBank = parsed;
+                            localStorage.setItem(STORAGE_KEY_CUSTOM_BANK, JSON.stringify(customQuestionsBank));
+                            break;
+                        }
+                    }
                 }
             } catch (e) {}
         }
@@ -3256,7 +3543,6 @@
 
         async function syncQuestionsToCloud() {
             try {
-                // 為避免 GAS 單一儲存格超過 50,000 字元上限，同步雲端時若圖片過大則保留精簡版或文字
                 const payloadQuestions = customQuestionsBank.map(q => ({
                     id: q.id,
                     grade: q.grade,
